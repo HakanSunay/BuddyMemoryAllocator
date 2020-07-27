@@ -85,7 +85,7 @@ public:
         // Must get overhead size
         this->overheadSize = (free_list_count * sizeof(LinkedList *)) + (this->isSplitCount * sizeof (uint8_t));
 
-        // must find X = overheadSize % 16 and mark the first X nodes as used
+        // must find X = overheadSize % min_block_size and mark the first X nodes as used
         // Update isSplit and freeLists with new values
     }
 
