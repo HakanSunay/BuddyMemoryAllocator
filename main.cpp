@@ -6,44 +6,34 @@ public:
     Node * next;
 };
 
-class LinkedList {
-
-public:
-    Node* head;
-
-    LinkedList() {
-        head = nullptr;
+Node *Pop(Node **pNode) {
+    Node* current = *pNode;
+    if (current == nullptr) {
+        return nullptr;
     }
 
-    void Push(Node* newNode) {
-        if (head == nullptr) {
-            head = newNode;
-            return;
-        }
+    Node* first = current;
+    *pNode = current->next;
 
-        Node* current = this->head;
+    return first;
+}
 
-        while (current && current->next) {
-            current = current->next;
-        }
-
-        current->next=newNode;
+void PushNewNode(Node **pNode, Node *pNode1) {
+    Node* current = *pNode;
+    if (current == nullptr) {
+        current = pNode1;
+        return;
     }
 
-    Node* PopFront() {
-        if (head == nullptr) {
-            return nullptr;
-        }
-
-        Node* first = this->head;
-        this->head = this->head->next;
-
-        return first;
+    while (current && current->next) {
+        current = current->next;
     }
-};
+
+    current->next=pNode1;
+}
 
 class Allocator {
-    LinkedList** freeLists; // freeList[0] - ; freeList[1] ....
+    Node** freeLists; // freeList[0] - ; freeList[1] ....
 
     uint8_t* isSplit;
     size_t isSplitCount;
@@ -64,37 +54,19 @@ class Allocator {
 
 public:
     void addNMinimumSizedBlocks(size_t count) {
+        // TODO: Configure all inner structure data, mark as split and so on
+        // TODO: Initialize all of the necessary free lists with the correct addresses
+
+        // TODO: There must be a way to achieve this recursively or depending on the count and the sizes we have, we must be able to set everything
         // if we have filled uneven amount of leaf nodes, the last leaf node must join the free list
         if (count % 2 == 1) {
             size_t offset = count * min_block_size;
 
+            Node* ll =((Node *)((char*)base_ptr + offset));
+            ll->next = nullptr;
 
-            // TODO: This must be done for every level, what happens when this block is allocated? Currently 1 block (16byte) is used for the LL and the NewNode
-            // Suppose we have BL 1 -> BL 2 -> BL 3
-            // BL 1 has the LinkedList that is pointed to by freeLists[i] and the head Node
-            // BL 2 is pointed to by the head node and has its next node
-            // BL 3 is pointed to by the BL 2 next node and its next is NULL
-            // What happens if we need to give BL1 for allocation?
-            // We have to remove the head (no problem)
-            // BUT WE ALSO HAVE TO REMOVE THE LL ITSELF, WE NEED TO MOVE IT NEXT TO BL2
-            // or in other words push BL2 a couple of bytes to the right so as to make space for the linked list
-            // See if we can actually store the actual linked list in the last BL?
-            // Does this mean that Push operation must always move the linked list to the new memory block?
-            // CAN THIS BE RESOLVED BY REMOVING THE LINKED LIST ABSTRACTION AND USING THE NODE* ONLY?
-
-            // LL is not init, here we are initing it
-            LinkedList* ll =((LinkedList *)((char*)base_ptr + offset));
-            ll->head = nullptr;
-
-            offset += sizeof(LinkedList);
-            Node *newNode = (Node*)((char *)base_ptr + offset);
-            newNode->next = nullptr;
-            ll->Push(newNode);
-
+            PushNewNode(&freeLists[4], ll);
             freeLists[free_list_count - 1] = ll;
-            if (true) {
-                int a = 5 + 4;
-            }
         }
     }
 
@@ -111,22 +83,22 @@ public:
         free_list_level_limit = free_list_count - 1;
 
         // init free lists
-        freeLists = (LinkedList**) addr;
+        freeLists = (Node**) addr;
         for (int i = 0; i < free_list_count; ++i) {
-            freeLists[i] = ((LinkedList*) addr) + i;
+            freeLists[i] = ((Node*) addr) + i;
             freeLists[i] = nullptr;
         }
 
         // HERE: addr + 3 -> NEXT: addr + 4 ( 4 x 8 )
         // Suppose split needs to be isSplit[2];
-        this->isSplit = (uint8_t *) (addr) + free_list_count * sizeof(LinkedList *);
+        this->isSplit = (uint8_t *) (addr) + free_list_count * sizeof(Node *);
         this->isSplitCount = ((unsigned) 1 << (free_list_count - 1)) / 8;
         for (int j = 0; j < isSplitCount; ++j) {
             this->isSplit[j] = 0;
         }
 
         // Must get overhead size
-        this->overheadSize = (free_list_count * sizeof(LinkedList *)) + (this->isSplitCount * sizeof (uint8_t));
+        this->overheadSize = (free_list_count * sizeof(Node *)) + (this->isSplitCount * sizeof (uint8_t));
 
         // must find X = overheadSize % min_block_size and mark the first X nodes as used
         // Update isSplit and freeLists with new values
