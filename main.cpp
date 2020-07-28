@@ -21,7 +21,7 @@ Node *Pop(Node **pNode) {
 void PushNewNode(Node **pNode, Node *pNode1) {
     Node* current = *pNode;
     if (current == nullptr) {
-        current = pNode1;
+        *pNode = pNode1;
         return;
     }
 
@@ -53,25 +53,52 @@ class Allocator {
     size_t overhead_blocks_count;
 
 public:
-    void addNMinimumSizedBlocks(size_t count) {
-        // TODO: Configure all inner structure data, mark as split and so on
-        // TODO: Initialize all of the necessary free lists with the correct addresses
+    size_t getBlockIndexFromAddr(uint8_t *ptr, size_t limit) {
+        return ((ptr - base_ptr) >> (max_memory_log - limit)) + (1 << limit) - 1;
+    }
 
-        // TODO: There must be a way to achieve this recursively or depending on the count and the sizes we have, we must be able to set everything
-        // if we have filled uneven amount of leaf nodes, the last leaf node must join the free list
-        if (count % 2 == 1) {
-            size_t offset = count * min_block_size;
+    size_t getParentIndex(size_t index) {
+        return (index - 1) / 2;
+    }
 
-            Node* ll =((Node *)((char*)base_ptr + offset));
-            ll->next = nullptr;
+    uint8_t * getPtrFromBlockIndex(size_t index, size_t level) {
+        return base_ptr + ((index - (1 << level) + 1) << (this->max_memory_log - level));
+    }
 
-            PushNewNode(&freeLists[4], ll);
-            freeLists[free_list_count - 1] = ll;
+    bool isRoot(size_t index) {
+        return index == 0;
+    }
+
+    bool isLeftBuddy(size_t index) {
+        return index % 2 == 1;
+    }
+
+    bool isRightBuddy(size_t index) {
+        return index % 2 == 0;
+    }
+
+    void initInnerStructures() {
+        // TODO: Init the split table as well
+        size_t lastInnerStructureBlockIndex = getBlockIndexFromAddr(base_ptr + (min_block_size * (overhead_blocks_count - 1)), free_list_level_limit);
+        size_t currentBlockIndex = lastInnerStructureBlockIndex;
+        size_t currentLevel = free_list_level_limit;
+
+        // while not at root index
+        while (!isRoot(currentBlockIndex)) {
+            if (isRightBuddy(currentBlockIndex)) {
+                // nothing to do in this case
+            } else if (isLeftBuddy(currentBlockIndex)) {
+                void *ptr = getPtrFromBlockIndex(currentBlockIndex, currentLevel);
+                Node *rightBuddy = FindRightBuddyOf(ptr, max_memory_log - currentLevel);
+                rightBuddy->next = nullptr;
+
+                PushNewNode(&this->freeLists[currentLevel], rightBuddy);
+            }
+            currentBlockIndex = getParentIndex(currentBlockIndex);
+            currentLevel--;
         }
     }
 
-// TODO: How to order inner structures' data after they are initialized
-    // TODO: Preamble vs Other ways for size persistence
     Allocator(void* addr, size_t size) {
         base_ptr = (uint8_t *)(addr);
 
@@ -105,12 +132,11 @@ public:
         this->overhead_blocks_count = ceil(overheadSize / float(min_block_size));
 
         // updates all necessary inner structures with current state
-        addNMinimumSizedBlocks(this->overhead_blocks_count);
+        initInnerStructures();
     }
 
     Node *FindRightBuddyOf(void *pVoid, int i) {
         // we have to shift 2^i bytes to the right to find the buddy
-        // TODO: what if the current block is a right buddy?
         return (Node*)(((char *)pVoid) + (1 << i));
     }
 
