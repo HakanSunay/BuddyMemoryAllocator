@@ -108,6 +108,29 @@ public:
         addNMinimumSizedBlocks(this->overhead_blocks_count);
     }
 
+    Node *FindRightBuddyOf(void *pVoid, int i) {
+        // we have to shift 2^i bytes to the right to find the buddy
+        // TODO: what if the current block is a right buddy?
+        return (Node*)(((char *)pVoid) + (1 << i));
+    }
+
+    size_t calculateEnclosingPowerOf2Size(size_t size) {
+        return (unsigned) 1 << unsigned (floor(log2(size)));
+    }
+
+    size_t findBestFitIndex(size_t requested_memory) {
+        size_t free_list_index = free_list_count - 1;
+        size_t size = this->min_block_size;
+
+        while (size < requested_memory) {
+            free_list_index--;
+            size *= 2;
+        }
+
+        return free_list_index;
+    }
+
+
     void* Allocate(size_t size) {
         // Allocate(16)
         // 16, but we need 8 bytes for the header as well => 24 => 32
@@ -120,7 +143,33 @@ public:
         // 2.1 Suppose 32 bytes free list is empty
         // 2.2 Jump to 64 byte free list, divide to two 32s and add them to 32 byte free list
         // 2.3 128
-        return nullptr;
+
+
+        int i = findBestFitIndex(size);
+
+
+        // this is currently hit only if we received more than max, but we need to take care of the overhead sizes as well
+        if (this->max_memory_log - i >= this->max_memory_log) {
+            return nullptr;
+        } else if (this->freeLists[i] != nullptr) {
+            // we have a block with this size in the free list
+            void * res = Pop(&this->freeLists[i]);
+
+            // TODO: must update the splitTree accordingly
+            return res;
+        } else {
+            // we need to split a bigger block
+            void * block = Allocate(1 << (max_memory_log - i + 1));
+            if (block != nullptr) {
+                // with the allocate on top we are getting the bigger chunk
+                // split and put the extra (right child) to the free list, which is in the current level
+                Node* buddy = FindRightBuddyOf(block, i);
+                PushNewNode(&this->freeLists[i], (Node*)buddy);
+
+                // TODO: must update the splitTree accordingly
+            }
+            return block;
+        }
     }
 
     void Free(void* ptr) {
@@ -133,7 +182,13 @@ int main() {
 
     void *adr = malloc(512);
 
-    Allocator(adr, 256);
+    Allocator a  = Allocator(adr, 256);
+
+    int *res = (int*)a.Allocate(16);
+    *res = 9;
+
+    int *res2 = (int*)a.Allocate(16);
+    *res2 = 92;
 
     std::cout << "Hello, World!" << std::endl;
     return 0;
