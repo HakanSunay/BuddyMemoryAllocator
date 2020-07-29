@@ -180,6 +180,11 @@ public:
         isSplit[index / 8] |= (unsigned)1 << (index % 8);
     }
 
+    bool isSplitBlockByIndex(size_t index) {
+        index = (index - 1) / 2;
+        return (isSplit[index / 8] >> (index % 8)) & 1;
+    }
+
     bool isFreeBlockBuddies(size_t index) {
         index = (index - 1) / 2;
         return (isFree[index / 8] >> (index % 8)) & 1;
@@ -188,6 +193,22 @@ public:
     void flipFreeTableIndexForBlockBuddies(size_t blockIndex) {
         size_t index = (blockIndex - 1) / 2;
         isFree[index / 8] ^= (unsigned)1 << (index % 8);
+    }
+
+    bool isSplitByAddrAndLevel(void *adr, size_t level) {
+        size_t blockIndex = getBlockIndexFromAddr((uint8_t *)(adr), level);
+        return isSplitBlockByIndex(blockIndex);
+    }
+
+    size_t findLevelOfAllocatedBlock(void* addr) {
+        size_t currentLevel = free_list_level_limit;
+        while (currentLevel > 0) {
+            if (isSplitByAddrAndLevel(addr, currentLevel - 1)) {
+                return currentLevel;
+            }
+            currentLevel--;
+        }
+        return 0;
     }
 
     void* Allocate(size_t size) {
