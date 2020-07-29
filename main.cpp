@@ -175,7 +175,14 @@ public:
         return free_list_index;
     }
 
+    // TODO: Check for correctness
     void markParentAsSplit(size_t index) {
+        index = (index - 1) / 2;
+        SplitTable[index / 8] |= (unsigned)1 << (index % 8);
+    }
+
+    // TODO:
+    void unmarkParentAsSplit(size_t index) {
         index = (index - 1) / 2;
         SplitTable[index / 8] |= (unsigned)1 << (index % 8);
     }
