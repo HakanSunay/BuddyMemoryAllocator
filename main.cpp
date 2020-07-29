@@ -35,9 +35,9 @@ void PushNewNode(Node **pNode, Node *pNode1) {
 class Allocator {
     Node** freeLists; // freeList[0] - ; freeList[1] ....
 
-    uint8_t* isSplit;
-    u_int8_t* isFree;
-    size_t isSplitCount;
+    uint8_t* SplitTable;
+    uint8_t* FreeTable;
+    size_t TableSize;
 
     uint8_t *base_ptr;
 
@@ -129,25 +129,25 @@ public:
         }
 
         // HERE: addr + 3 -> NEXT: addr + 4 ( 4 x 8 )
-        // Suppose split needs to be isSplit[2];
+        // Suppose split needs to be SplitTable[2];
         // TODO: I can probably get the last index of freeList and incr it by sizeof(Node*) [8 bytes]
-        this->isSplit = (uint8_t *) (addr) + free_list_count * sizeof(Node *);
-        this->isSplitCount = ((unsigned) 1 << (free_list_count - 1)) / 8;
-        for (int j = 0; j < isSplitCount; ++j) {
-            this->isSplit[j] = 0;
+        this->SplitTable = (uint8_t *) (addr) + free_list_count * sizeof(Node *);
+        this->TableSize = ((unsigned) 1 << (free_list_count - 1)) / 8;
+        for (int j = 0; j < TableSize; ++j) {
+            this->SplitTable[j] = 0;
         }
 
-        // TODO: I can probably get the last index of isSplit and incr it by sizeof(uint8_t) [1 byte]
-        this->isFree = (u_int8_t *) (addr) + (free_list_count * sizeof(Node *)) + (isSplitCount * sizeof(uint8_t));
-        for (int k = 0; k < isSplitCount; ++k) {
-            this->isFree[k] = 0;
+        // TODO: I can probably get the last index of SplitTable and incr it by sizeof(uint8_t) [1 byte]
+        this->FreeTable = (u_int8_t *) (addr) + (free_list_count * sizeof(Node *)) + (TableSize * sizeof(uint8_t));
+        for (int k = 0; k < TableSize; ++k) {
+            this->FreeTable[k] = 0;
         }
 
         // Must get overhead size
-        this->overheadSize = (free_list_count * sizeof(Node *)) + (this->isSplitCount * sizeof (uint8_t)) + (this->isSplitCount * sizeof (uint8_t));
+        this->overheadSize = (free_list_count * sizeof(Node *)) + (this->TableSize * sizeof (uint8_t)) + (this->TableSize * sizeof (uint8_t));
 
         // must find X = overheadSize % min_block_size and mark the first X nodes as used
-        // Update isSplit and freeLists with new values
+        // Update SplitTable and freeLists with new values
         this->overhead_blocks_count = ceil(overheadSize / float(min_block_size));
 
         // updates all necessary inner structures with current state
@@ -177,22 +177,22 @@ public:
 
     void markParentAsSplit(size_t index) {
         index = (index - 1) / 2;
-        isSplit[index / 8] |= (unsigned)1 << (index % 8);
+        SplitTable[index / 8] |= (unsigned)1 << (index % 8);
     }
 
     bool isSplitBlockByIndex(size_t index) {
         index = (index - 1) / 2;
-        return (isSplit[index / 8] >> (index % 8)) & 1;
+        return (SplitTable[index / 8] >> (index % 8)) & 1;
     }
 
     bool isFreeBlockBuddies(size_t index) {
         index = (index - 1) / 2;
-        return (isFree[index / 8] >> (index % 8)) & 1;
+        return (FreeTable[index / 8] >> (index % 8)) & 1;
     }
 
     void flipFreeTableIndexForBlockBuddies(size_t blockIndex) {
         size_t index = (blockIndex - 1) / 2;
-        isFree[index / 8] ^= (unsigned)1 << (index % 8);
+        FreeTable[index / 8] ^= (unsigned)1 << (index % 8);
     }
 
     bool isSplitByAddrAndLevel(void *adr, size_t level) {
