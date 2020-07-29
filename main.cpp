@@ -267,6 +267,26 @@ public:
     }
 
     void Free(void* ptr) {
+        size_t allocationLevel = findLevelOfAllocatedBlock(ptr);
+        size_t allocationSize = 1 << (max_memory_log - allocationLevel);
+        size_t blockIndex = getBlockIndexFromAddr((uint8_t*)ptr, allocationLevel);
+
+        // Current block will becomes free therefore we flip
+        flipFreeTableIndexForBlockBuddies(blockIndex);
+
+        // if true => right buddy is free
+        // if false => right buddy is allocated
+        bool freeTableResult = isFreeBlockBuddies(blockIndex);
+        if (freeTableResult == true) {
+            // this depends on resolving all correct places to flip
+            // TODO: merge blocks and add to the free list on upper level; REPEAT for block on upper level; tricky thing is do we need to flip once we get up
+        }
+
+
+
+        //
+
+
         // SIZE_OF_BLOCK = (size_t) ptr - 1;
         //
     }
