@@ -36,6 +36,7 @@ class Allocator {
     Node** freeLists; // freeList[0] - ; freeList[1] ....
 
     uint8_t* isSplit;
+    u_int8_t* isFree;
     size_t isSplitCount;
 
     uint8_t *base_ptr;
@@ -78,10 +79,20 @@ public:
     }
 
     void initInnerStructures() {
-        // TODO: Init the split table as well
         size_t lastInnerStructureBlockIndex = getBlockIndexFromAddr(base_ptr + (min_block_size * (overhead_blocks_count - 1)), free_list_level_limit);
         size_t currentBlockIndex = lastInnerStructureBlockIndex;
         size_t currentLevel = free_list_level_limit;
+
+        size_t tempIndex = currentBlockIndex;
+        for (int i = 0; i < this->overhead_blocks_count; ++i) {
+            // markParentAsSplit currently flips the bit, this if ensures it is executed only once for a pair of buddies
+            // only when we are at the left buddy will we flip the bit from 0 to 1
+            if (tempIndex % 2 == 1) {
+                markParentAsSplit(tempIndex);
+            }
+            flipFreeTableIndexForBlockBuddies(tempIndex);
+            tempIndex--;
+        }
 
         // while not at root index
         while (!isRoot(currentBlockIndex)) {
@@ -94,6 +105,7 @@ public:
 
                 PushNewNode(&this->freeLists[currentLevel], rightBuddy);
             }
+            markParentAsSplit(currentBlockIndex);
             currentBlockIndex = getParentIndex(currentBlockIndex);
             currentLevel--;
         }
@@ -118,14 +130,21 @@ public:
 
         // HERE: addr + 3 -> NEXT: addr + 4 ( 4 x 8 )
         // Suppose split needs to be isSplit[2];
+        // TODO: I can probably get the last index of freeList and incr it by sizeof(Node*) [8 bytes]
         this->isSplit = (uint8_t *) (addr) + free_list_count * sizeof(Node *);
         this->isSplitCount = ((unsigned) 1 << (free_list_count - 1)) / 8;
         for (int j = 0; j < isSplitCount; ++j) {
             this->isSplit[j] = 0;
         }
 
+        // TODO: I can probably get the last index of isSplit and incr it by sizeof(uint8_t) [1 byte]
+        this->isFree = (u_int8_t *) (addr) + (free_list_count * sizeof(Node *)) + (isSplitCount * sizeof(uint8_t));
+        for (int k = 0; k < isSplitCount; ++k) {
+            this->isFree[k] = 0;
+        }
+
         // Must get overhead size
-        this->overheadSize = (free_list_count * sizeof(Node *)) + (this->isSplitCount * sizeof (uint8_t));
+        this->overheadSize = (free_list_count * sizeof(Node *)) + (this->isSplitCount * sizeof (uint8_t)) + (this->isSplitCount * sizeof (uint8_t));
 
         // must find X = overheadSize % min_block_size and mark the first X nodes as used
         // Update isSplit and freeLists with new values
@@ -156,6 +175,20 @@ public:
         return free_list_index;
     }
 
+    void markParentAsSplit(size_t index) {
+        index = (index - 1) / 2;
+        isSplit[index / 8] |= (unsigned)1 << (index % 8);
+    }
+
+    bool isFreeBlockBuddies(size_t index) {
+        index = (index - 1) / 2;
+        return (isFree[index / 8] >> (index % 8)) & 1;
+    }
+
+    void flipFreeTableIndexForBlockBuddies(size_t blockIndex) {
+        size_t index = (blockIndex - 1) / 2;
+        isFree[index / 8] ^= (unsigned)1 << (index % 8);
+    }
 
     void* Allocate(size_t size) {
         // Allocate(16)
@@ -180,19 +213,26 @@ public:
         } else if (this->freeLists[i] != nullptr) {
             // we have a block with this size in the free list
             void * res = Pop(&this->freeLists[i]);
+            size_t blockIndexOfRes = getBlockIndexFromAddr((uint8_t*)res, i);
 
-            // TODO: must update the splitTree accordingly
+            // TODO: NOT SURE IF THESE SHOULD BE HERE
+            markParentAsSplit(blockIndexOfRes);
+            flipFreeTableIndexForBlockBuddies(blockIndexOfRes);
+
             return res;
         } else {
             // we need to split a bigger block
             void * block = Allocate(1 << (max_memory_log - i + 1));
             if (block != nullptr) {
+                size_t blockIndex = getBlockIndexFromAddr((uint8_t*)block, i);
                 // with the allocate on top we are getting the bigger chunk
                 // split and put the extra (right child) to the free list, which is in the current level
                 Node* buddy = FindRightBuddyOf(block, i);
                 PushNewNode(&this->freeLists[i], (Node*)buddy);
 
-                // TODO: must update the splitTree accordingly
+                // TODO: NOT SURE IF THESE SHOULD BE HERE
+                markParentAsSplit(blockIndex);
+                flipFreeTableIndexForBlockBuddies(blockIndex);
             }
             return block;
         }
@@ -205,17 +245,23 @@ public:
 };
 
 int main() {
-
     void *adr = malloc(512);
 
     Allocator a  = Allocator(adr, 256);
 
-    int *res = (int*)a.Allocate(16);
-    *res = 9;
+    int *nums[10];
+    for (int i = 0; i < 10; ++i) {
+        nums[i] = (int*)a.Allocate(sizeof(int));
+        *nums[i] = i;
+    }
 
-    int *res2 = (int*)a.Allocate(16);
-    *res2 = 92;
+    for (int i = 0; i < 10; ++i) {
+        if (*nums[i] != i) {
+            printf("OPA!!!");
+        }
+    }
 
     std::cout << "Hello, World!" << std::endl;
+    free(adr);
     return 0;
 }
