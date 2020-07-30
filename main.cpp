@@ -55,6 +55,21 @@ void RemoveNode(Node** pNode, Node* nodeToBeRemoved) {
     cur->next = nextOfNodeToBeRemoved;
 }
 
+// TODO: Modularize code
+// TODO: Add debug option which will print current state of the allocator:
+// Allocated items - size and address
+// Free spaces - size and address
+// TODO: See how can we handle memory leaks
+// Interesting reads below:
+// https://stackoverflow.com/questions/9074229/detecting-memory-leaks-in-c-programs
+// TODO: Make Allocator super efficient:
+// 1. Only bitshifts for arithmetic operations
+// 2. Loop iter vars
+// 3. Eliminate function call overheads (copying context & new stack frame)
+// 4. Leaf functions
+// 5. Inline functions
+// Interesting reads below:
+// https://www.codeproject.com/Articles/6154/Writing-Efficient-C-and-C-Code-Optimization
 class Allocator {
     Node** freeLists; // freeList[0] - ; freeList[1] ....
 
@@ -355,6 +370,8 @@ int main() {
 
     Allocator a  = Allocator(adr, 256);
 
+    // TODO: Stress testing with bigger allocator size and different allocation sizes
+    // Possible regression might happen in FreeTable values, but debugging will be hard
     int *nums[3];
     for (int i = 0; i < 3; ++i) {
         nums[i] = (int*)a.Allocate(sizeof(int));
