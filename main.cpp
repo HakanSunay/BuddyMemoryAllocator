@@ -32,6 +32,29 @@ void PushNewNode(Node **pNode, Node *pNode1) {
     current->next=pNode1;
 }
 
+void RemoveNode(Node** pNode, Node* nodeToBeRemoved) {
+    Node* cur = *pNode;
+    if (cur == nullptr) {
+        return;
+    }
+
+    if (cur == nodeToBeRemoved) {
+        *pNode = nullptr;
+        return;
+    }
+
+    while (cur->next != nodeToBeRemoved && cur->next != nullptr) {
+        cur = cur->next;
+    }
+
+    if (cur->next == nullptr) {
+        return;
+    }
+
+    Node* nextOfNodeToBeRemoved = nodeToBeRemoved->next;
+    cur->next = nextOfNodeToBeRemoved;
+}
+
 class Allocator {
     Node** freeLists; // freeList[0] - ; freeList[1] ....
 
@@ -258,7 +281,11 @@ public:
                 size_t blockIndex = getBlockIndexFromAddr((uint8_t*)block, i);
                 // with the allocate on top we are getting the bigger chunk
                 // split and put the extra (right child) to the free list, which is in the current level
-                Node* buddy = FindRightBuddyOf(block, i);
+
+                size_t buddyIndex = findBuddyIndex(blockIndex);
+                Node * buddy = (Node *)getPtrFromBlockIndex(buddyIndex, i);
+                buddy->next = nullptr;
+
                 PushNewNode(&this->freeLists[i], (Node*)buddy);
 
                 // TODO: NOT SURE IF THESE SHOULD BE HERE
@@ -269,29 +296,55 @@ public:
         }
     }
 
+    size_t findBuddyIndex(size_t index) {
+        // root node
+        if (index == 0) {
+            return 0;
+        }
+
+        return ((index - 1) ^ 1) + 1;
+    }
+
     void Free(void* ptr) {
         size_t allocationLevel = findLevelOfAllocatedBlock(ptr);
         size_t allocationSize = 1 << (max_memory_log - allocationLevel);
         size_t blockIndex = getBlockIndexFromAddr((uint8_t*)ptr, allocationLevel);
 
-        // Current block will becomes free therefore we flip
-        flipFreeTableIndexForBlockBuddies(blockIndex);
+        size_t currentLevel = allocationLevel;
+        size_t currentIndex = blockIndex;
 
-        // if true => right buddy is free
-        // if false => right buddy is allocated
-        bool freeTableResult = isFreeBlockBuddies(blockIndex);
-        if (freeTableResult == true) {
-            // this depends on resolving all correct places to flip
-            // TODO: merge blocks and add to the free list on upper level; REPEAT for block on upper level; tricky thing is do we need to flip once we get up
+        // traversing upwards
+        while (!isRoot(currentIndex)) {
+            // Current block will becomes free therefore we flip
+            flipFreeTableIndexForBlockBuddies(currentIndex);
+
+            // result is BUDDY_IS_FREE XOR 1
+            // if 1 / true => buddy is not free
+            // if 0 / false => buddy is free
+            bool isNotFreeBuddy = isFreeBlockBuddies(currentIndex);
+            if (isNotFreeBuddy) {
+                // stopping here and will add ourselves to the free lists of our level
+                break;
+            }
+
+            // we will certainly go 1 level up, so parent will no longer be split
+            unmarkParentAsSplit(currentIndex);
+
+            // our buddy is free, therefore we need to remove it from its free list
+            // adding to the actual new free list will be done out of the loop
+            size_t buddyIndex = findBuddyIndex(currentIndex);
+            Node *buddyNode = (Node*)getPtrFromBlockIndex(buddyIndex, currentLevel);
+            // TODO: we are going into the free lists, but the buddyNode doesn't exist there
+            // We could have made a mistake when marking the free tables
+            RemoveNode(&this->freeLists[currentLevel], buddyNode);
+            currentIndex = (currentIndex - 1) / 2;
+            currentLevel--;
         }
 
-
-
-        //
-
-
-        // SIZE_OF_BLOCK = (size_t) ptr - 1;
-        //
+        // hypothetically this should work
+        Node* newNode = (Node*)getPtrFromBlockIndex(currentIndex, currentLevel);
+        newNode->next = nullptr;
+        PushNewNode(&this->freeLists[currentLevel], newNode);
     }
 };
 
@@ -300,17 +353,20 @@ int main() {
 
     Allocator a  = Allocator(adr, 256);
 
-    int *nums[10];
-    for (int i = 0; i < 10; ++i) {
+    int *nums[3];
+    for (int i = 0; i < 3; ++i) {
         nums[i] = (int*)a.Allocate(sizeof(int));
         *nums[i] = i;
     }
 
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 3; ++i) {
         if (*nums[i] != i) {
             printf("OPA!!!");
         }
     }
+
+    a.Free(nums[2]);
+    a.Free(nums[1]);
 
     std::cout << "Hello, World!" << std::endl;
     free(adr);
