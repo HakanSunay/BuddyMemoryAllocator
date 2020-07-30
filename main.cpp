@@ -124,6 +124,8 @@ public:
                 // nothing to do in this case
             } else if (isLeftBuddy(currentBlockIndex)) {
                 void *ptr = getPtrFromBlockIndex(currentBlockIndex, currentLevel);
+                // TODO:
+                // This function is not really safe, I can replace with index & level -> ptr
                 Node *rightBuddy = FindRightBuddyOf(ptr, max_memory_log - currentLevel);
                 rightBuddy->next = nullptr;
 
