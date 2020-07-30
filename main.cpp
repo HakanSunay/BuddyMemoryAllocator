@@ -89,6 +89,7 @@ public:
             // only when we are at the left buddy will we flip the bit from 0 to 1
             if (tempIndex % 2 == 1) {
                 markParentAsSplit(tempIndex);
+                unmarkParentAsSplit(tempIndex);
             }
             flipFreeTableIndexForBlockBuddies(tempIndex);
             tempIndex--;
@@ -175,16 +176,18 @@ public:
         return free_list_index;
     }
 
-    // TODO: Check for correctness
     void markParentAsSplit(size_t index) {
         index = (index - 1) / 2;
         SplitTable[index / 8] |= (unsigned)1 << (index % 8);
     }
 
-    // TODO:
+    // 000 111 000
+    // &
+    // 111 001 111
+    // ....
     void unmarkParentAsSplit(size_t index) {
         index = (index - 1) / 2;
-        SplitTable[index / 8] |= (unsigned)1 << (index % 8);
+        SplitTable[index / 8] &= ~((unsigned)1 << (index % 8));
     }
 
     bool isSplitBlockByIndex(size_t index) {
