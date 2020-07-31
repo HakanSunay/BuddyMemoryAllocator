@@ -339,6 +339,8 @@ public:
             bool isFreeBuddy = isFreeBlockBuddies(currentIndex);
             if (!isFreeBuddy) {
                 // stopping here and will add ourselves to the free lists of our level
+                // Current block will becomes free therefore we flip
+                flipFreeTableIndexForBlockBuddies(currentIndex);
                 break;
             }
 
