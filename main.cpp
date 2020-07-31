@@ -123,12 +123,13 @@ public:
 
         size_t tempIndex = currentBlockIndex;
         for (int i = 0; i < this->overhead_blocks_count; ++i) {
-            // markParentAsSplit currently flips the bit, this if ensures it is executed only once for a pair of buddies
-            // only when we are at the left buddy will we flip the bit from 0 to 1
-            if (tempIndex % 2 == 1) {
-                markParentAsSplit(tempIndex);
-                unmarkParentAsSplit(tempIndex);
-            }
+//            // markParentAsSplit currently flips the bit, this if ensures it is executed only once for a pair of buddies
+//            // only when we are at the left buddy will we flip the bit from 0 to 1
+//            if (tempIndex % 2 == 1) {
+//                markParentAsSplit(tempIndex);
+//                unmarkParentAsSplit(tempIndex);
+//            }
+            markParentAsSplit(tempIndex);
             flipFreeTableIndexForBlockBuddies(tempIndex);
             tempIndex--;
         }
@@ -145,6 +146,7 @@ public:
                 rightBuddy->next = nullptr;
 
                 PushNewNode(&this->freeLists[currentLevel], rightBuddy);
+                flipFreeTableIndexForBlockBuddies(currentBlockIndex);
             }
             markParentAsSplit(currentBlockIndex);
             currentBlockIndex = getParentIndex(currentBlockIndex);
@@ -231,7 +233,7 @@ public:
     }
 
     bool isSplitBlockByIndex(size_t index) {
-        index = (index - 1) / 2;
+        //index = (index - 1) / 2;
         return (SplitTable[index / 8] >> (index % 8)) & 1;
     }
 
@@ -247,6 +249,8 @@ public:
 
     bool isSplitByAddrAndLevel(void *adr, size_t level) {
         size_t blockIndex = getBlockIndexFromAddr((uint8_t *)(adr), level);
+        // the below fn will check for parent
+        // i want to check for current bl
         return isSplitBlockByIndex(blockIndex);
     }
 
@@ -332,17 +336,14 @@ public:
 
         // traversing upwards
         while (!isRoot(currentIndex)) {
-            // Current block will becomes free therefore we flip
-            flipFreeTableIndexForBlockBuddies(currentIndex);
-
-            // result is BUDDY_IS_FREE XOR 1
-            // if 1 / true => buddy is not free
-            // if 0 / false => buddy is free
-            bool isNotFreeBuddy = isFreeBlockBuddies(currentIndex);
-            if (isNotFreeBuddy) {
+            bool isFreeBuddy = isFreeBlockBuddies(currentIndex);
+            if (!isFreeBuddy) {
                 // stopping here and will add ourselves to the free lists of our level
                 break;
             }
+
+            // Current block will becomes free therefore we flip
+            flipFreeTableIndexForBlockBuddies(currentIndex);
 
             // we will certainly go 1 level up, so parent will no longer be split
             unmarkParentAsSplit(currentIndex);
@@ -372,6 +373,7 @@ int main() {
 
     // TODO: Stress testing with bigger allocator size and different allocation sizes
     // Possible regression might happen in FreeTable values, but debugging will be hard
+
     int *nums[3];
     for (int i = 0; i < 3; ++i) {
         nums[i] = (int*)a.Allocate(sizeof(int));
@@ -383,6 +385,15 @@ int main() {
             printf("OPA!!!");
         }
     }
+
+    int* medNum = (int*)a.Allocate(32);
+    *medNum = 3;
+    int* bigNum = (int*)a.Allocate(64);
+    *bigNum = 4;
+
+    a.Free(bigNum);
+    a.Free(medNum);
+
 
     a.Free(nums[2]);
     a.Free(nums[1]);
