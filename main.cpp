@@ -71,7 +71,7 @@ void RemoveNode(Node** pNode, Node* nodeToBeRemoved) {
 // Interesting reads below:
 // https://www.codeproject.com/Articles/6154/Writing-Efficient-C-and-C-Code-Optimization
 class Allocator {
-    Node** freeLists; // freeList[0] - ; freeList[1] ....
+    Node** freeLists;
 
     uint8_t* SplitTable;
     uint8_t* FreeTable;
@@ -123,12 +123,6 @@ public:
 
         size_t tempIndex = currentBlockIndex;
         for (int i = 0; i < this->overhead_blocks_count; ++i) {
-//            // markParentAsSplit currently flips the bit, this if ensures it is executed only once for a pair of buddies
-//            // only when we are at the left buddy will we flip the bit from 0 to 1
-//            if (tempIndex % 2 == 1) {
-//                markParentAsSplit(tempIndex);
-//                unmarkParentAsSplit(tempIndex);
-//            }
             markParentAsSplit(tempIndex);
             flipFreeTableIndexForBlockBuddies(tempIndex);
             tempIndex--;
@@ -186,11 +180,7 @@ public:
             this->FreeTable[k] = 0;
         }
 
-        // Must get overhead size
         this->overheadSize = (free_list_count * sizeof(Node *)) + (this->TableSize * sizeof (uint8_t)) + (this->TableSize * sizeof (uint8_t));
-
-        // must find X = overheadSize % min_block_size and mark the first X nodes as used
-        // Update SplitTable and freeLists with new values
         this->overhead_blocks_count = ceil(overheadSize / float(min_block_size));
 
         // updates all necessary inner structures with current state
@@ -233,7 +223,6 @@ public:
     }
 
     bool isSplitBlockByIndex(size_t index) {
-        //index = (index - 1) / 2;
         return (SplitTable[index / 8] >> (index % 8)) & 1;
     }
 
@@ -249,8 +238,6 @@ public:
 
     bool isSplitByAddrAndLevel(void *adr, size_t level) {
         size_t blockIndex = getBlockIndexFromAddr((uint8_t *)(adr), level);
-        // the below fn will check for parent
-        // i want to check for current bl
         return isSplitBlockByIndex(blockIndex);
     }
 
@@ -266,21 +253,7 @@ public:
     }
 
     void* Allocate(size_t size) {
-        // Allocate(16)
-        // 16, but we need 8 bytes for the header as well => 24 => 32
-        //
-        // size + HEADER_SIZE = actual_size
-        // 0.0. Check if input size is correct
-        // 0.1.
-        // 1. Closest power of 2 to actual_size ( if actual size 17 -> 32; 5 -> 16) // [HEADER:8BYTE(SIZE_OF_CURRENT_BLOCK) + INPUT_SIZE]
-        // 2. Check if free list of level that corresponds to 32 bytes is not empty
-        // 2.1 Suppose 32 bytes free list is empty
-        // 2.2 Jump to 64 byte free list, divide to two 32s and add them to 32 byte free list
-        // 2.3 128
-
-
         int i = findBestFitIndex(size);
-
 
         // this is currently hit only if we received more than max, but we need to take care of the overhead sizes as well
         if (this->max_memory_log - i >= this->max_memory_log) {
@@ -339,12 +312,12 @@ public:
             bool isFreeBuddy = isFreeBlockBuddies(currentIndex);
             if (!isFreeBuddy) {
                 // stopping here and will add ourselves to the free lists of our level
-                // Current block will becomes free therefore we flip
+                // Current block will become free therefore we flip
                 flipFreeTableIndexForBlockBuddies(currentIndex);
                 break;
             }
 
-            // Current block will becomes free therefore we flip
+            // Current block will become free therefore we flip
             flipFreeTableIndexForBlockBuddies(currentIndex);
 
             // we will certainly go 1 level up, so parent will no longer be split
@@ -354,14 +327,11 @@ public:
             // adding to the actual new free list will be done out of the loop
             size_t buddyIndex = findBuddyIndex(currentIndex);
             Node *buddyNode = (Node*)getPtrFromBlockIndex(buddyIndex, currentLevel);
-            // TODO: we are going into the free lists, but the buddyNode doesn't exist there
-            // We could have made a mistake when marking the free tables
             RemoveNode(&this->freeLists[currentLevel], buddyNode);
             currentIndex = (currentIndex - 1) / 2;
             currentLevel--;
         }
 
-        // hypothetically this should work
         Node* newNode = (Node*)getPtrFromBlockIndex(currentIndex, currentLevel);
         newNode->next = nullptr;
         PushNewNode(&this->freeLists[currentLevel], newNode);
