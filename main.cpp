@@ -80,6 +80,9 @@ class Allocator {
 
     uint8_t *base_ptr;
 
+    // TODO: Is this really necessary?
+    uint8_t *offset_ptr;
+
     size_t max_memory_log;
     size_t max_memory_size;
 
@@ -118,9 +121,23 @@ public:
     }
 
     void initInnerStructures() {
+        // last level first index => 2^max_level - 1
+        size_t firstUnusedBlockIndex = (1 << free_list_level_limit) - 1;
+        size_t tempUnusedBlockIndex = firstUnusedBlockIndex;
+        // Must add extra unused blocks first
+        for (int i = 0; i < this->unusedBlocksCount; ++i) {
+            markParentAsSplit(tempUnusedBlockIndex);
+            flipFreeTableIndexForBlockBuddies(tempUnusedBlockIndex);
+            tempUnusedBlockIndex++;
+        }
+
+
         size_t lastInnerStructureBlockIndex = getBlockIndexFromAddr(base_ptr + (min_block_size * (overhead_blocks_count - 1)), free_list_level_limit);
+        // take unused blocks into consideration
+        lastInnerStructureBlockIndex += unusedBlocksCount;
         size_t currentBlockIndex = lastInnerStructureBlockIndex;
         size_t currentLevel = free_list_level_limit;
+
 
         size_t tempIndex = currentBlockIndex;
         for (int i = 0; i < this->overhead_blocks_count; ++i) {
@@ -151,32 +168,39 @@ public:
 
     Allocator(void* addr, size_t size) {
         base_ptr = (uint8_t *)(addr);
+        offset_ptr = base_ptr;
 
-        // TODO: Handle when size is not power of 2
+        // max_memory_size is the actual size
         max_memory_size = size;
-        max_memory_log = log2(max_memory_size);
+
+        // max_memory_log is the ceiled log, example:
+        // 500 size -> log2(512)
+        max_memory_log = ceil(log2(size));
+        unusedSpace = (1 << max_memory_log) - size;
+
+        // 4 for current test
+        unusedBlocksCount = ceil(unusedSpace / float(min_block_size));
 
         free_list_count = max_memory_log - min_block_log + 1;
         free_list_level_limit = free_list_count - 1;
 
         // init free lists
-        freeLists = (Node**) addr;
+        freeLists = (Node**) base_ptr;
         for (int i = 0; i < free_list_count; ++i) {
-            freeLists[i] = ((Node*) addr) + i;
+            freeLists[i] = ((Node*) base_ptr) + i;
             freeLists[i] = nullptr;
         }
 
         // HERE: addr + 3 -> NEXT: addr + 4 ( 4 x 8 )
-        // Suppose split needs to be SplitTable[2];
         // TODO: I can probably get the last index of freeList and incr it by sizeof(Node*) [8 bytes]
-        this->SplitTable = (uint8_t *) (addr) + free_list_count * sizeof(Node *);
+        this->SplitTable = (uint8_t *) (base_ptr) + free_list_count * sizeof(Node *);
         this->TableSize = ((unsigned) 1 << (free_list_count - 1)) / 8;
         for (int j = 0; j < TableSize; ++j) {
             this->SplitTable[j] = 0;
         }
 
         // TODO: I can probably get the last index of SplitTable and incr it by sizeof(uint8_t) [1 byte]
-        this->FreeTable = (u_int8_t *) (addr) + (free_list_count * sizeof(Node *)) + (TableSize * sizeof(uint8_t));
+        this->FreeTable = (u_int8_t *) (base_ptr) + (free_list_count * sizeof(Node *)) + (TableSize * sizeof(uint8_t));
         for (int k = 0; k < TableSize; ++k) {
             this->FreeTable[k] = 0;
         }
@@ -337,46 +361,70 @@ public:
         newNode->next = nullptr;
         PushNewNode(&this->freeLists[currentLevel], newNode);
     }
+
+    size_t unusedSpace;
+    size_t unusedBlocksCount;
 };
 
 int main() {
-    void *adr = malloc(1048576);
+    size_t size = 200;
+    void * adr = malloc(size);
+    Allocator a = Allocator(adr, size);
 
-    Allocator a  = Allocator(adr, 1048576);
-
-    // TODO: Stress testing with bigger allocator size and different allocation sizes
-    // Possible regression might happen in FreeTable values, but debugging will be hard
-
-    int *nums[25000];
-
-    auto start1 = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < 25000; ++i) {
-        nums[i] = (int*)a.Allocate(32);
+    size_t countOfCalls = 3;
+    int *nums[countOfCalls];
+    for (int i = 0; i < countOfCalls; ++i) {
+        nums[i] = (int*)a.Allocate(sizeof(int));
         *nums[i] = i;
     }
-    auto end1 = std::chrono::high_resolution_clock::now();
 
-    int *m_nums[25000];
-    auto start2 = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < 25000; ++i) {
-        m_nums[i] = (int*)malloc(32);
-        *m_nums[i] = i;
-    }
-    auto end2 = std::chrono::high_resolution_clock::now();
-
-    auto dur1 = std::chrono::duration_cast<std::chrono::microseconds>(end1 - start1);
-    auto dur2 = std::chrono::duration_cast<std::chrono::microseconds>(end2 - start2);
-
-
-    std::cout << "Time taken by buddy: " << dur1.count() << " microseconds" << std::endl;
-    std::cout << "Time taken by malloc: " << dur2.count() << " microseconds" << std::endl;
-
-    // Correctness check
-    for (int i = 0; i < 25000; ++i) {
+    for (int i = 0; i < countOfCalls; ++i) {
         if (*nums[i] != i) {
             printf("OPA!!!");
         }
     }
+
+    a.Free(nums[2]);
+    a.Free(nums[1]);
+    a.Free(nums[0]);
+
+//    void *adr = malloc(1048576);
+//
+//    Allocator a  = Allocator(adr, 1048576);
+//
+//    // TODO: Stress testing with bigger allocator size and different allocation sizes
+//    // Possible regression might happen in FreeTable values, but debugging will be hard
+//
+//    int *nums[25000];
+//
+//    auto start1 = std::chrono::high_resolution_clock::now();
+//    for (int i = 0; i < 25000; ++i) {
+//        nums[i] = (int*)a.Allocate(32);
+//        *nums[i] = i;
+//    }
+//    auto end1 = std::chrono::high_resolution_clock::now();
+//
+//    int *m_nums[25000];
+//    auto start2 = std::chrono::high_resolution_clock::now();
+//    for (int i = 0; i < 25000; ++i) {
+//        m_nums[i] = (int*)malloc(32);
+//        *m_nums[i] = i;
+//    }
+//    auto end2 = std::chrono::high_resolution_clock::now();
+//
+//    auto dur1 = std::chrono::duration_cast<std::chrono::microseconds>(end1 - start1);
+//    auto dur2 = std::chrono::duration_cast<std::chrono::microseconds>(end2 - start2);
+//
+//
+//    std::cout << "Time taken by buddy: " << dur1.count() << " microseconds" << std::endl;
+//    std::cout << "Time taken by malloc: " << dur2.count() << " microseconds" << std::endl;
+//
+//    // Correctness check
+//    for (int i = 0; i < 25000; ++i) {
+//        if (*nums[i] != i) {
+//            printf("OPA!!!");
+//        }
+//    }
 
 //
 //    for (int i = 0; i < 1000; ++i) {
