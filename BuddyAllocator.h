@@ -416,6 +416,10 @@ public:
         os << "Allocated for inner structures: " << this->overhead_blocks_count * min_block_size << "\n";
         os << "Allocated for users: " << (this->actual_size - totalFreeMemory) - this->overhead_blocks_count * min_block_size << "\n";
     }
+
+    static void CheckForLeaks() {
+        std::cout<<"CHECKING AT EXIT" << std::endl;
+    }
 };
 
 #endif //UNTITLED_NEWEST_BUDDYALLOCATOR_H

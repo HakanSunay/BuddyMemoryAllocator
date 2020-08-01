@@ -159,10 +159,6 @@ void TestWithPowerOfTwo() {
         }
     }
 
-    for (int i = 0; i < countOfCalls; ++i) {
-        a.Free(nums[countOfCalls-i]);
-    }
-
     int* medNum = (int*)a.Allocate(32);
     *medNum = 3;
     int* bigNum = (int*)a.Allocate(64);
