@@ -10,7 +10,8 @@
 #ifndef UNTITLED_NEWEST_BUDDYALLOCATOR_H
 #define UNTITLED_NEWEST_BUDDYALLOCATOR_H
 
-// TODO: Modularize code
+// TODO: Modularize code -> move to .cpp
+// TODO: Add logging
 // TODO: Add debug option which will print current state of the allocator:
 // Allocated items - size and address
 // Free spaces - size and address
@@ -50,8 +51,8 @@ class Allocator {
     size_t unusedSpace;
     size_t unusedBlocksCount;
 public:
-    size_t getBlockIndexFromAddr(uint8_t *ptr, size_t limit) {
-        return ((ptr - base_ptr) >> (max_memory_log - limit)) + (1 << limit) - 1;
+    size_t getBlockIndexFromAddr(uint8_t *ptr, size_t level) {
+        return ((ptr - base_ptr) >> (max_memory_log - level)) + (1 << level) - 1;
     }
 
     size_t getParentIndex(size_t index) {
