@@ -7,12 +7,18 @@ int main() {
     void * adr = malloc(size);
     Allocator a = Allocator(adr, size);
 
+    std::cout << std::endl;
+    a.debug(std::cout);
+
     size_t countOfCalls = 3;
     int *nums[countOfCalls];
     for (int i = 0; i < countOfCalls; ++i) {
         nums[i] = (int*)a.Allocate(sizeof(int));
         *nums[i] = i;
     }
+
+    std::cout << std::endl;
+    a.debug(std::cout);
 
     for (int i = 0; i < countOfCalls; ++i) {
         if (*nums[i] != i) {
@@ -23,6 +29,9 @@ int main() {
     a.Free(nums[2]);
     a.Free(nums[1]);
     a.Free(nums[0]);
+
+    std::cout << std::endl;
+    a.debug(std::cout);
 
 //    void *adr = malloc(1048576);
 //

@@ -39,6 +39,7 @@ class Allocator {
 
     size_t max_memory_log;
     size_t max_memory_size;
+    size_t actual_size;
 
     size_t min_block_log = 4;
     size_t min_block_size = 1 << min_block_log;
@@ -49,6 +50,8 @@ class Allocator {
     size_t overheadSize;
     size_t overhead_blocks_count;
 
+    size_t unusedSpace;
+    size_t unusedBlocksCount;
 public:
     size_t getBlockIndexFromAddr(uint8_t *ptr, size_t limit) {
         return ((ptr - base_ptr) >> (max_memory_log - limit)) + (1 << limit) - 1;
@@ -80,6 +83,8 @@ public:
         size_t tempUnusedBlockIndex = firstUnusedBlockIndex;
         // Must add extra unused blocks first
         for (int i = 0; i < this->unusedBlocksCount; ++i) {
+            // TODO:
+            // Not sure if updating the tables is necessary for unused virtual structures
             markParentAsSplit(tempUnusedBlockIndex);
             flipFreeTableIndexForBlockBuddies(tempUnusedBlockIndex);
             tempUnusedBlockIndex++;
@@ -98,6 +103,7 @@ public:
             markParentAsSplit(tempIndex);
             flipFreeTableIndexForBlockBuddies(tempIndex);
             tempIndex--;
+            this->actual_size -= (1 << (max_memory_log - currentLevel));
         }
 
         // while not at root index
@@ -124,13 +130,14 @@ public:
         base_ptr = (uint8_t *)(addr);
         offset_ptr = base_ptr;
 
-        // max_memory_size is the actual size
-        max_memory_size = size;
+        actual_size = size;
 
         // max_memory_log is the ceiled log, example:
         // 500 size -> log2(512)
         max_memory_log = ceil(log2(size));
-        unusedSpace = (1 << max_memory_log) - size;
+        max_memory_size = (1 << max_memory_log);
+
+        unusedSpace = max_memory_size - actual_size;
 
         // 4 for current test
         unusedBlocksCount = ceil(unusedSpace / float(min_block_size));
@@ -264,6 +271,8 @@ public:
                 // TODO: NOT SURE IF THESE SHOULD BE HERE
                 markParentAsSplit(blockIndex);
                 flipFreeTableIndexForBlockBuddies(blockIndex);
+
+                this->actual_size -= (1 << (max_memory_log - i));
             }
             return block;
         }
@@ -276,6 +285,14 @@ public:
         }
 
         return ((index - 1) ^ 1) + 1;
+    }
+
+    size_t previousPowerOfTwo(size_t num) {
+        while (num & num - 1) {
+            num = num & num -1;
+        }
+
+        return num;
     }
 
     void Free(void* ptr) {
@@ -307,6 +324,8 @@ public:
             size_t buddyIndex = findBuddyIndex(currentIndex);
             Node *buddyNode = (Node*)getPtrFromBlockIndex(buddyIndex, currentLevel);
             RemoveNode(&this->freeLists[currentLevel], buddyNode);
+            // TODO: NOT CORRECT
+            this->actual_size += (1 << (max_memory_log - currentLevel));
             currentIndex = (currentIndex - 1) / 2;
             currentLevel--;
         }
@@ -316,8 +335,59 @@ public:
         PushNewNode(&this->freeLists[currentLevel], newNode);
     }
 
-    size_t unusedSpace;
-    size_t unusedBlocksCount;
+    void printTree(uint8_t * arr, std::ostream& os, const char *mark)
+    {
+        std::string serializedSplitTree;
+        std::string serializedFreeTree;
+        for (int j = 0; j < this->TableSize; ++j) {
+            uint8_t splitByte = arr[j];
+            for (int i = 0; i < 8; ++i, splitByte >>= 1) {
+                if (splitByte & 0x1) {
+                    serializedSplitTree.append("1");
+                } else {
+                    serializedSplitTree.append("0");
+                }
+            }
+        }
+
+        // the string are read from left to right, unlike the bit map
+        // first char is 0th bit ( 2 ^ 0)
+
+        size_t ix = 0;
+        for (int k = 0; k < this->free_list_level_limit; ++k) {
+            size_t countOfElementsToBePrinted = 1 << k;
+            os << (1 << (max_memory_log - k)) << ": \t\t";
+
+            size_t printableBlocks = 1 << (this->free_list_level_limit);
+            size_t extraBlocksToBePrinted = printableBlocks - countOfElementsToBePrinted;
+            size_t extraBlocksOnEachSide = extraBlocksToBePrinted / 2;
+            for (int j = 0; j < extraBlocksOnEachSide; ++j) {
+                os << " " << " ";
+            }
+
+            for (int i = 0; i < countOfElementsToBePrinted; ++i) {
+                os << ((serializedSplitTree[ix] == '1') ? mark:"_") << " ";
+                ix++;
+            }
+            os << "\n";
+        }
+
+        os << "\n";
+    }
+
+    // TODO: Try to print like the diagram in bitsquid
+    void debug(std::ostream& os) {
+       os << "Virtual size was: " << this->max_memory_size << std::endl;
+       os << "Asked size was: " << this->max_memory_size - this->unusedSpace << std::endl;
+       os << "Size after inner structures was: " << this->max_memory_size - this->unusedBlocksCount * this->min_block_size - (free_list_count * sizeof(Node*)) << std::endl;
+       os << "Actual manageable size was: " << previousPowerOfTwo(this->max_memory_size - this->unusedBlocksCount * this->min_block_size - (free_list_count * sizeof(Node*))) << std::endl;
+       os << "Current size is: " << this->actual_size << std::endl;
+       os << "Current max allocatable size is: " << previousPowerOfTwo(this->actual_size) << std::endl;
+       os << "Split table status: " << std::endl;
+       printTree(this->SplitTable, os, "S");
+        os << "Free table status: " << std::endl;
+       printTree(this->FreeTable, os, "F");
+   }
 };
 
 #endif //UNTITLED_NEWEST_BUDDYALLOCATOR_H
