@@ -34,9 +34,6 @@ class Allocator {
 
     uint8_t *base_ptr;
 
-    // TODO: Is this really necessary?
-    uint8_t *offset_ptr;
-
     size_t max_memory_log;
     size_t max_memory_size;
     size_t actual_size;
@@ -103,7 +100,6 @@ public:
             markParentAsSplit(tempIndex);
             flipFreeTableIndexForBlockBuddies(tempIndex);
             tempIndex--;
-            this->actual_size -= (1 << (max_memory_log - currentLevel));
         }
 
         // while not at root index
@@ -128,7 +124,6 @@ public:
 
     Allocator(void* addr, size_t size) {
         base_ptr = (uint8_t *)(addr);
-        offset_ptr = base_ptr;
 
         actual_size = size;
 
@@ -271,8 +266,6 @@ public:
                 // TODO: NOT SURE IF THESE SHOULD BE HERE
                 markParentAsSplit(blockIndex);
                 flipFreeTableIndexForBlockBuddies(blockIndex);
-
-                this->actual_size -= (1 << (max_memory_log - i));
             }
             return block;
         }
@@ -324,8 +317,6 @@ public:
             size_t buddyIndex = findBuddyIndex(currentIndex);
             Node *buddyNode = (Node*)getPtrFromBlockIndex(buddyIndex, currentLevel);
             RemoveNode(&this->freeLists[currentLevel], buddyNode);
-            // TODO: NOT CORRECT
-            this->actual_size += (1 << (max_memory_log - currentLevel));
             currentIndex = (currentIndex - 1) / 2;
             currentLevel--;
         }
@@ -337,15 +328,14 @@ public:
 
     void printTree(uint8_t * arr, std::ostream& os, const char *mark)
     {
-        std::string serializedSplitTree;
-        std::string serializedFreeTree;
+        std::string serializedTree;
         for (int j = 0; j < this->TableSize; ++j) {
             uint8_t splitByte = arr[j];
             for (int i = 0; i < 8; ++i, splitByte >>= 1) {
                 if (splitByte & 0x1) {
-                    serializedSplitTree.append("1");
+                    serializedTree.append("1");
                 } else {
-                    serializedSplitTree.append("0");
+                    serializedTree.append("0");
                 }
             }
         }
@@ -358,15 +348,16 @@ public:
             size_t countOfElementsToBePrinted = 1 << k;
             os << (1 << (max_memory_log - k)) << ": \t\t";
 
-            size_t printableBlocks = 1 << (this->free_list_level_limit);
-            size_t extraBlocksToBePrinted = printableBlocks - countOfElementsToBePrinted;
-            size_t extraBlocksOnEachSide = extraBlocksToBePrinted / 2;
-            for (int j = 0; j < extraBlocksOnEachSide; ++j) {
-                os << " " << " ";
-            }
+//            // Disabling because for bigger trees stdout cannot contain all of these leading spaces
+//            size_t printableBlocks = 1 << (this->free_list_level_limit);
+//            size_t extraBlocksToBePrinted = printableBlocks - countOfElementsToBePrinted;
+//            size_t extraBlocksOnEachSide = extraBlocksToBePrinted / 2;
+//            for (int j = 0; j < extraBlocksOnEachSide; ++j) {
+//                os << " " << " ";
+//            }
 
             for (int i = 0; i < countOfElementsToBePrinted; ++i) {
-                os << ((serializedSplitTree[ix] == '1') ? mark:"_") << " ";
+                os << ((serializedTree[ix] == '1') ? mark : "_") << " ";
                 ix++;
             }
             os << "\n";
@@ -381,11 +372,9 @@ public:
        os << "Asked size was: " << this->max_memory_size - this->unusedSpace << std::endl;
        os << "Size after inner structures was: " << this->max_memory_size - this->unusedBlocksCount * this->min_block_size - (free_list_count * sizeof(Node*)) << std::endl;
        os << "Actual manageable size was: " << previousPowerOfTwo(this->max_memory_size - this->unusedBlocksCount * this->min_block_size - (free_list_count * sizeof(Node*))) << std::endl;
-       os << "Current size is: " << this->actual_size << std::endl;
-       os << "Current max allocatable size is: " << previousPowerOfTwo(this->actual_size) << std::endl;
        os << "Split table status: " << std::endl;
        printTree(this->SplitTable, os, "S");
-        os << "Free table status: " << std::endl;
+       os << "Free table status: " << std::endl;
        printTree(this->FreeTable, os, "F");
    }
 };
