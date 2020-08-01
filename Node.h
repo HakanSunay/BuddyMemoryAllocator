@@ -59,4 +59,19 @@ void RemoveNode(Node** pNode, Node* nodeToBeRemoved) {
     cur->next = nextOfNodeToBeRemoved;
 }
 
+size_t GetLength(Node** list) {
+    Node* cur = *list;
+    if (cur == nullptr) {
+        return 0;
+    }
+
+    size_t len = 0;
+    while (cur) {
+        cur = cur->next;
+        len++;
+    }
+
+    return len;
+}
+
 #endif //UNTITLED_NEWEST_NODE_H

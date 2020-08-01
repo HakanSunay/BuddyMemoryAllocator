@@ -143,6 +143,9 @@ void TestWithPowerOfTwo() {
     void * adr = malloc(size);
     Allocator a = Allocator(adr, size);
 
+    a.debug(std::cout);
+    a.exposeFreeMemory(std::cout);
+
     size_t countOfCalls = 3;
     int *nums[countOfCalls];
     for (int i = 0; i < countOfCalls; ++i) {

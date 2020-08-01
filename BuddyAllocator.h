@@ -369,15 +369,53 @@ public:
 
     // TODO: Try to print like the diagram in bitsquid
     void debug(std::ostream& os) {
-       os << "Virtual size was: " << this->max_memory_size << std::endl;
-       os << "Asked size was: " << this->max_memory_size - this->unusedSpace << std::endl;
-       os << "Size after inner structures was: " << this->max_memory_size - this->unusedBlocksCount * this->min_block_size - (free_list_count * sizeof(Node*)) << std::endl;
-       os << "Actual manageable size was: " << previousPowerOfTwo(this->max_memory_size - this->unusedBlocksCount * this->min_block_size - (free_list_count * sizeof(Node*))) << std::endl;
-       os << "Split table status: " << std::endl;
-       printTree(this->SplitTable, os, "S");
-       os << "Free table status: " << std::endl;
-       printTree(this->FreeTable, os, "F");
-   }
+        os << "Asked size was: " << this->max_memory_size - this->unusedSpace << std::endl;
+        os << "Virtual size was: " << this->max_memory_size << std::endl;
+        os << "Size after inner structures was: " << this->max_memory_size - this->unusedBlocksCount * this->min_block_size - (free_list_count * sizeof(Node*)) << std::endl << std::endl;
+
+        exposeInnerStructures(os);
+        exposeFreeMemory(os);
+    }
+
+    void exposeInnerStructures(std::ostream& os) {
+        os << "Inner structures details:" << "\n";
+        uint8_t * addrIter = base_ptr;
+        os << "Address space range: [" << (void*)addrIter << ";" << (void*)((uint8_t *)addrIter + this->actual_size) << "]" << std::endl;
+        for (int j = 0; j < this->free_list_count; ++j) {
+            os << "Free list " << j + 1 << " : " << (void*)addrIter << std::endl;
+            addrIter += sizeof(Node*);
+        }
+
+        os << "Split table structure details:" << "\n";
+        for (int j = 0; j < this->TableSize; ++j) {
+            os << "Split Tables " << j + 1 << " : " << (void*)addrIter << std::endl;
+            addrIter += sizeof(uint8_t*);
+        }
+        os << "Split table status: " << "\n";
+        printTree(this->SplitTable, os, "S");
+
+        os << "Free table structure details:" << "\n";
+        for (int j = 0; j < this->TableSize; ++j) {
+            os << "Free Tables " << j + 1 << " : " << (void*)addrIter << std::endl;
+            addrIter += sizeof(uint8_t*);
+        }
+        os << "Free table status: " << "\n";
+        printTree(this->FreeTable, os, "F");
+    }
+
+    void exposeFreeMemory(std::ostream& os) {
+        size_t totalFreeMemory = 0;
+        for (int i = 0; i < this->free_list_count; ++i) {
+            size_t freeBlockCountOnCurrentLevel = GetLength(&freeLists[i]);
+            os << freeBlockCountOnCurrentLevel << " available block" << (freeBlockCountOnCurrentLevel != 1 ? "s" : "") << " with size " << (1 << (max_memory_log - i)) << "\n";
+            totalFreeMemory += ((1 << (max_memory_log - i)) * freeBlockCountOnCurrentLevel);
+        }
+
+        os << "Free memory size as of now: " << totalFreeMemory << "\n";
+        os << "Total allocated memory size as of now: " << this->actual_size - totalFreeMemory << "\n";
+        os << "Allocated for inner structures: " << this->overhead_blocks_count * min_block_size << "\n";
+        os << "Allocated for users: " << (this->actual_size - totalFreeMemory) - this->overhead_blocks_count * min_block_size << "\n";
+    }
 };
 
 #endif //UNTITLED_NEWEST_BUDDYALLOCATOR_H
