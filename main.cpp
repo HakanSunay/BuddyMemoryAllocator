@@ -3,8 +3,7 @@
 
 int main() {
     std::cout << "Hakan's Buddy Memory Allocator main started" << std::endl;
-    TestWithPowerOfTwo();
-    StressTestWithAllocateAndFreeAgainstSystem();
+    ProfileAllocator();
     return 0;
 }
 

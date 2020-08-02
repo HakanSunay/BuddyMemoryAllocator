@@ -13,4 +13,6 @@ void MixedTest();
 
 void TestWithPowerOfTwo();
 
+void ProfileAllocator();
+
 #endif //UNTITLED_NEWEST_TESTS_H

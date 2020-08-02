@@ -168,3 +168,41 @@ void TestWithPowerOfTwo() {
 
     free(adr);
 }
+
+void ProfileAllocator() {
+    void *adr = malloc(1048576);
+
+    Allocator a  = Allocator(adr, 1048576);
+
+    int *nums[25000];
+
+    auto start1 = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < 25000; ++i) {
+        nums[i] = (int*)a.Allocate(32);
+        *nums[i] = i;
+    }
+    auto end1 = std::chrono::high_resolution_clock::now();
+
+
+    auto dur1 = std::chrono::duration_cast<std::chrono::microseconds>(end1 - start1);
+
+
+    std::cout << "Time taken by buddy to allocate: " << dur1.count() << " microseconds" << std::endl;
+
+    // Correctness check
+    for (int i = 0; i < 25000; ++i) {
+        if (*nums[i] != i) {
+            printf("Expected %d, but got %d", i, *nums[i]);
+        }
+    }
+
+
+    // Free check
+    auto freeStart1 = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < 25000; ++i) {
+        a.Free(nums[i]);
+    }
+    auto freeEnd1 = std::chrono::high_resolution_clock::now();
+    auto freeDur1 = std::chrono::duration_cast<std::chrono::microseconds>(freeEnd1 - freeStart1);
+    std::cout << "Time taken by buddy to free: " << freeDur1.count() << " microseconds" << std::endl;
+}
