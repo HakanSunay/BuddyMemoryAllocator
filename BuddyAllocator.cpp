@@ -295,12 +295,12 @@ size_t Allocator::calculateEnclosingPowerOf2Size(size_t size) {
 }
 
 size_t Allocator::findBestFitIndex(size_t requested_memory) {
-    size_t free_list_index = free_list_count - 1;
+    size_t free_list_index = free_list_level_limit;
     size_t size = this->min_block_size;
 
     while (size < requested_memory) {
         free_list_index--;
-        size *= 2;
+        size <<= 1;
     }
 
     return free_list_index;
