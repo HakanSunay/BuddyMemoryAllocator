@@ -9,10 +9,13 @@
 #include <cmath>
 #include "Node.h"
 
+// TODO: Add error handling
 // TODO: Add logging
 // TODO: See how can we handle memory leaks
 // Interesting reads below:
 // https://stackoverflow.com/questions/9074229/detecting-memory-leaks-in-c-programs
+// @Semerdzhiev: "Leak data must also be kept in the Allocator's memory"
+// For every allocation, I will have to keep __FILE__ & __LINE__, which will result in very big overhead
 // TODO: Make Allocator super efficient:
 // 1. Only bitshifts for arithmetic operations
 // 2. Loop iter vars
