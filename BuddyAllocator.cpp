@@ -198,14 +198,6 @@ void Allocator::printTree(uint8_t *arr, std::ostream &os, const char *mark) {
         size_t countOfElementsToBePrinted = 1 << k;
         os << (1 << (max_memory_log - k)) << ": \t\t";
 
-//            // Disabling because for bigger trees stdout cannot contain all of these leading spaces
-//            size_t printableBlocks = 1 << (this->free_list_level_limit);
-//            size_t extraBlocksToBePrinted = printableBlocks - countOfElementsToBePrinted;
-//            size_t extraBlocksOnEachSide = extraBlocksToBePrinted / 2;
-//            for (int j = 0; j < extraBlocksOnEachSide; ++j) {
-//                os << " " << " ";
-//            }
-
         for (int i = 0; i < countOfElementsToBePrinted; ++i) {
             os << ((serializedTree[ix] == '1') ? mark : "_") << " ";
             ix++;
@@ -217,11 +209,11 @@ void Allocator::printTree(uint8_t *arr, std::ostream &os, const char *mark) {
 }
 
 void Allocator::Debug(std::ostream &os) {
+    os << "Debug information: \n\n";
     os << "Asked size was: " << this->max_memory_size - this->unusedSpace << std::endl;
     os << "Virtual size was: " << this->max_memory_size << std::endl;
     os << "Size after inner structures was: " << this->max_memory_size - this->unusedBlocksCount * this->min_block_size - (free_list_count * sizeof(Node*)) << std::endl << std::endl;
 
-    exposeInnerStructures(os);
     exposeFreeMemory(os);
 }
 
@@ -262,7 +254,7 @@ void Allocator::exposeFreeMemory(std::ostream &os) {
     os << "Free memory size as of now: " << totalFreeMemory << "\n";
     os << "Total allocated memory size as of now: " << this->actual_size - totalFreeMemory << "\n";
     os << "Allocated for inner structures: " << this->overhead_blocks_count * min_block_size << "\n";
-    os << "Allocated for users: " << (this->actual_size - totalFreeMemory) - this->overhead_blocks_count * min_block_size << "\n";
+    os << "Allocated for users: " << (this->actual_size - totalFreeMemory) - this->overhead_blocks_count * min_block_size << "\n\n";
 }
 
 void Allocator::CheckForLeaks() {

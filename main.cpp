@@ -4,6 +4,7 @@
 int main() {
     std::cout << "Hakan's Buddy Memory Allocator main started" << std::endl;
     TestWithPowerOfTwo();
+    StressTestWithAllocateAndFreeAgainstSystem();
     return 0;
 }
 
