@@ -206,3 +206,71 @@ void ProfileAllocator() {
     auto freeDur1 = std::chrono::duration_cast<std::chrono::microseconds>(freeEnd1 - freeStart1);
     std::cout << "Time taken by buddy to free: " << freeDur1.count() << " microseconds" << std::endl;
 }
+
+void TestHugeAllocations() {
+    std::cout << "Testing Allocation and Deallocation with 1 GB of memory" << std::endl;
+    // 1 GB - 1 073 741 824
+    size_t oneGB = 1073741824;
+    void *adr = malloc(oneGB);
+
+    Allocator a  = Allocator(adr, oneGB);
+
+    size_t countOfAllocs = 250000;
+
+    // blocks of sizes allocBlockSize, allocBlockSize * 2, ..., allocBlockSize * blockDeviation
+    // will be allocated sequentially
+    size_t allocBlockSize = 32;
+    size_t blockSizeDeviation = 4;
+
+
+    // Allocation benchmark for buddy
+    int *nums[countOfAllocs];
+    auto buddyAllocStart = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < countOfAllocs; ++i) {
+        nums[i] = (int*)a.Allocate(allocBlockSize * ((i % blockSizeDeviation) + 1));
+        *nums[i] = i;
+    }
+    auto buddyAllocEnd = std::chrono::high_resolution_clock::now();
+    auto buddyAllocDur = std::chrono::duration_cast<std::chrono::microseconds>(buddyAllocEnd - buddyAllocStart);
+    std::cout << "Time taken by buddy to allocate: " << buddyAllocDur.count() << " microseconds" << std::endl;
+
+    // Allocation benchmark for system
+    int *m_nums[countOfAllocs];
+    auto systemAllocStart = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < countOfAllocs; ++i) {
+        m_nums[i] = (int*)malloc(allocBlockSize * ((i % blockSizeDeviation) + 1));
+        *m_nums[i] = i;
+    }
+    auto systemAllocEnd = std::chrono::high_resolution_clock::now();
+    auto systemAllocDur = std::chrono::duration_cast<std::chrono::microseconds>(systemAllocEnd - systemAllocStart);
+    std::cout << "Time taken by system to allocate: " << systemAllocDur.count() << " microseconds" << std::endl;
+
+    // Correctness check for buddy
+    for (int i = 0; i < countOfAllocs; ++i) {
+        if (*nums[i] != i) {
+            printf("Expected %d, but got %d", i, *nums[i]);
+        }
+    }
+
+    // Free benchmark for buddy
+    auto buddyFreeStart = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < countOfAllocs; ++i) {
+        a.Free(nums[i]);
+    }
+    auto buddyFreeEnd = std::chrono::high_resolution_clock::now();
+    auto buddyFreeDur = std::chrono::duration_cast<std::chrono::microseconds>(buddyFreeEnd - buddyFreeStart);
+    std::cout << "Time taken by buddy to free: " << buddyFreeDur.count() << " microseconds" << std::endl;
+
+
+    // Free benchmark for system
+    auto systemFreeStart = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < countOfAllocs; ++i) {
+        free(m_nums[i]);
+    }
+    auto systemFreeEnd = std::chrono::high_resolution_clock::now();
+    auto systemFreeDur = std::chrono::duration_cast<std::chrono::microseconds>(systemFreeEnd - systemFreeStart);
+    std::cout << "Time taken by system to free: " << systemFreeDur.count() << " microseconds" << std::endl;
+
+    free(adr);
+    std::cout << "Ending test huge allocations" << std::endl;
+}

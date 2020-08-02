@@ -15,4 +15,6 @@ void TestWithPowerOfTwo();
 
 void ProfileAllocator();
 
+void TestHugeAllocations();
+
 #endif //UNTITLED_NEWEST_TESTS_H

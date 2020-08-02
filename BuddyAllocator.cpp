@@ -362,4 +362,3 @@ size_t Allocator::previousPowerOfTwo(size_t num) {
 
     return num;
 }
-
