@@ -1,13 +1,9 @@
 #include <iostream>
-#include <chrono>
-#include "BuddyAllocator.h"
 #include "Tests.h"
 
 int main() {
     std::cout << "Hakan's Buddy Memory Allocator main started" << std::endl;
     TestWithPowerOfTwo();
-
-    std::atexit(Allocator::CheckForLeaks);
     return 0;
 }
 
