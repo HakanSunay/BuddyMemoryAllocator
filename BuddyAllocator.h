@@ -10,9 +10,6 @@
 #include "Node.h"
 
 // TODO: Add logging
-// TODO: Add debug option which will print current state of the allocator:
-// Allocated items - size and address
-// Free spaces - size and address
 // TODO: See how can we handle memory leaks
 // Interesting reads below:
 // https://stackoverflow.com/questions/9074229/detecting-memory-leaks-in-c-programs
