@@ -24,6 +24,9 @@ void PushNewNode(Node **pNode, Node *pNode1) {
     }
 
     while (current && current->next) {
+        if (current == current ->next) {
+            break;
+        }
         current = current->next;
     }
 
@@ -37,7 +40,7 @@ void RemoveNode(Node **pNode, Node *nodeToBeRemoved) {
     }
 
     if (cur == nodeToBeRemoved) {
-        *pNode = nullptr;
+        *pNode = cur->next;
         return;
     }
 

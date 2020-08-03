@@ -41,7 +41,7 @@ Allocator::Allocator(void *addr, size_t size) {
     }
 
     // TODO: I can probably get the last index of SplitTable and incr it by sizeof(uint8_t) [1 byte]
-    this->FreeTable = (u_int8_t *) (base_ptr) + (free_list_count * sizeof(Node *)) + (TableSize * sizeof(uint8_t));
+    this->FreeTable = (uint8_t *) (base_ptr) + (free_list_count * sizeof(Node *)) + (TableSize * sizeof(uint8_t));
     for (int k = 0; k < TableSize; ++k) {
         this->FreeTable[k] = 0;
     }
@@ -93,7 +93,7 @@ void Allocator::initInnerStructures() {
             rightBuddy->next = nullptr;
 
             PushNewNode(&this->freeLists[currentLevel], rightBuddy);
-            flipFreeTableIndexForBlockBuddies(currentBlockIndex);
+            //flipFreeTableIndexForBlockBuddies(currentBlockIndex);
         }
         markParentAsSplit(currentBlockIndex);
         currentBlockIndex = getParentIndex(currentBlockIndex);
@@ -102,6 +102,15 @@ void Allocator::initInnerStructures() {
 }
 
 void *Allocator::Allocate(size_t size) {
+    void* res = myAllocate(size);
+    size_t blockIndexOfRes = getBlockIndexFromAddr((uint8_t*)res, this->resultBlockLevel);
+    flipFreeTableIndexForBlockBuddies(blockIndexOfRes);
+    this->resultBlockLevel = 0;
+    return res;
+}
+
+
+void *Allocator::myAllocate(size_t size) {
     int i = findBestFitIndex(size);
 
     // this is currently hit only if we received more than max, but we need to take care of the overhead sizes as well
@@ -114,12 +123,12 @@ void *Allocator::Allocate(size_t size) {
 
         // TODO: NOT SURE IF THESE SHOULD BE HERE
         markParentAsSplit(blockIndexOfRes);
-        flipFreeTableIndexForBlockBuddies(blockIndexOfRes);
-
+        //flipFreeTableIndexForBlockBuddies(blockIndexOfRes);
+        this->resultBlockLevel = i;
         return res;
     } else {
         // we need to split a bigger block
-        void * block = Allocate(1 << (max_memory_log - i + 1));
+        void * block = myAllocate(1 << (max_memory_log - i + 1));
         if (block != nullptr) {
             size_t blockIndex = getBlockIndexFromAddr((uint8_t*)block, i);
             // with the allocate on top we are getting the bigger chunk
@@ -133,11 +142,13 @@ void *Allocator::Allocate(size_t size) {
 
             // TODO: NOT SURE IF THESE SHOULD BE HERE
             markParentAsSplit(blockIndex);
-            flipFreeTableIndexForBlockBuddies(blockIndex);
+            //flipFreeTableIndexForBlockBuddies(blockIndex);
         }
+        this->resultBlockLevel = i;
         return block;
     }
 }
+
 
 void Allocator::Free(void *ptr) {
     size_t allocationLevel = findLevelOfAllocatedBlock(ptr);
@@ -212,7 +223,7 @@ void Allocator::Debug(std::ostream &os) {
     os << "Debug information: \n\n";
     os << "Asked size was: " << this->max_memory_size - this->unusedSpace << std::endl;
     os << "Virtual size was: " << this->max_memory_size << std::endl;
-    os << "Size after inner structures was: " << this->max_memory_size - this->unusedBlocksCount * this->min_block_size - (free_list_count * sizeof(Node*)) << std::endl << std::endl;
+    os << "Size after inner structures was: " << this->max_memory_size - this->unusedBlocksCount * this->min_block_size - (this->overhead_blocks_count * min_block_size) << std::endl << std::endl;
 
     exposeFreeMemory(os);
 }
@@ -254,6 +265,7 @@ void Allocator::exposeFreeMemory(std::ostream &os) {
     os << "Free memory size as of now: " << totalFreeMemory << "\n";
     os << "Total allocated memory size as of now: " << this->actual_size - totalFreeMemory << "\n";
     os << "Allocated for inner structures: " << this->overhead_blocks_count * min_block_size << "\n";
+    // TODO: not really correct
     os << "Allocated for users: " << (this->actual_size - totalFreeMemory) - this->overhead_blocks_count * min_block_size << "\n\n";
 }
 
@@ -270,7 +282,7 @@ size_t Allocator::getParentIndex(size_t index) {
 }
 
 uint8_t *Allocator::getPtrFromBlockIndex(size_t index, size_t level) {
-    return base_ptr + ((index - (1 << level) + 1) << (this->max_memory_log - level));
+   return base_ptr + ((index - (1 << level) + 1) << (this->max_memory_log - level));
 }
 
 bool Allocator::isRoot(size_t index) {
@@ -325,6 +337,7 @@ bool Allocator::isFreeBlockBuddies(size_t index) {
     return (FreeTable[index / 8] >> (index % 8)) & 1;
 }
 
+// TODO: see why this doesnt match
 void Allocator::flipFreeTableIndexForBlockBuddies(size_t blockIndex) {
     size_t index = (blockIndex - 1) / 2;
     FreeTable[index / 8] ^= (unsigned)1 << (index % 8);

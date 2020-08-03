@@ -50,6 +50,7 @@ class Allocator {
     size_t unusedBlocksCount;
 
     void initInnerStructures();
+    void *myAllocate(size_t size);
 
     inline size_t getBlockIndexFromAddr(uint8_t *ptr, size_t level);
     inline size_t getParentIndex(size_t index);
@@ -89,6 +90,8 @@ public:
     void Debug(std::ostream& os);
 
     static void CheckForLeaks();
+
+    int resultBlockLevel;
 };
 
 #endif //UNTITLED_NEWEST_BUDDYALLOCATOR_H

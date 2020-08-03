@@ -5,6 +5,7 @@
 #include "Tests.h"
 #include "BuddyAllocator.h"
 #include <cstdlib>
+#include <vector>
 
 void StressTestWithAllocateAndFreeAgainstSystem() {
     void *adr = malloc(1048576);
@@ -261,6 +262,8 @@ void TestHugeAllocations() {
     auto buddyFreeDur = std::chrono::duration_cast<std::chrono::microseconds>(buddyFreeEnd - buddyFreeStart);
     std::cout << "Time taken by buddy to free: " << buddyFreeDur.count() << " microseconds" << std::endl;
 
+    a.Debug(std::cout);
+
 
     // Free benchmark for system
     auto systemFreeStart = std::chrono::high_resolution_clock::now();
@@ -273,4 +276,24 @@ void TestHugeAllocations() {
 
     free(adr);
     std::cout << "Ending test huge allocations" << std::endl;
+}
+
+void SimpleTest() {
+    void *adr = malloc(1024);
+    Allocator a = Allocator(adr, 1024);
+    a.Debug(std::cout);
+
+    // TODO: maybe testing like this is not really wise, because m[30] assumes continuous memory
+    int *addresses[30];
+    for (int i = 0; i < 30; ++i) {
+        addresses[i] = (int*)a.Allocate(sizeof(int));
+        *addresses[i] = i;
+    }
+
+    for (int i = 0; i < 30; ++i) {
+        a.Free(addresses[i]);
+    }
+
+    a.Debug(std::cout);
+    free(adr);
 }
