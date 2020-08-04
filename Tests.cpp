@@ -104,6 +104,7 @@ void MixedTest() {
     size_t size = 25000;
     void * adr = malloc(size);
     Allocator a = Allocator(adr, size);
+    a.Debug(std::cout);
 
     size_t countOfCalls = 1000;
     int *nums[countOfCalls];
@@ -132,8 +133,7 @@ void MixedTest() {
     a.Free(medNum);
 
 
-    a.Free(nums[2]);
-    a.Free(nums[1]);
+    a.Debug(std::cout);
     free(adr);
 }
 
@@ -216,7 +216,7 @@ void TestHugeAllocations() {
 
     Allocator a  = Allocator(adr, oneGB);
 
-    size_t countOfAllocs = 250000;
+    size_t countOfAllocs = 25000;
 
     // blocks of sizes allocBlockSize, allocBlockSize * 2, ..., allocBlockSize * blockDeviation
     // will be allocated sequentially

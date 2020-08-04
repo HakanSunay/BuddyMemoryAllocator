@@ -2,6 +2,7 @@
 // Created by Hakan Halil on 1.08.20.
 //
 
+#include <iostream>
 #include "Node.h"
 
 Node *Pop(Node **pNode) {
@@ -49,6 +50,7 @@ void RemoveNode(Node **pNode, Node *nodeToBeRemoved) {
     }
 
     if (cur->next == nullptr) {
+        std::cout<<"MISS"<<std::endl;
         return;
     }
 

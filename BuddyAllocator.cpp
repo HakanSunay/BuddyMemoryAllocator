@@ -62,7 +62,7 @@ void Allocator::initInnerStructures() {
         // TODO:
         // Not sure if updating the tables is necessary for unused virtual structures
         markParentAsSplit(tempUnusedBlockIndex);
-        flipFreeTableIndexForBlockBuddies(tempUnusedBlockIndex);
+        //flipFreeTableIndexForBlockBuddies(tempUnusedBlockIndex);
         tempUnusedBlockIndex++;
     }
 
@@ -77,7 +77,7 @@ void Allocator::initInnerStructures() {
     size_t tempIndex = currentBlockIndex;
     for (int i = 0; i < this->overhead_blocks_count; ++i) {
         markParentAsSplit(tempIndex);
-        flipFreeTableIndexForBlockBuddies(tempIndex);
+        //flipFreeTableIndexForBlockBuddies(tempIndex);
         tempIndex--;
     }
 
@@ -93,7 +93,7 @@ void Allocator::initInnerStructures() {
             rightBuddy->next = nullptr;
 
             PushNewNode(&this->freeLists[currentLevel], rightBuddy);
-            //flipFreeTableIndexForBlockBuddies(currentBlockIndex);
+            flipFreeTableIndexForBlockBuddies(currentBlockIndex);
         }
         markParentAsSplit(currentBlockIndex);
         currentBlockIndex = getParentIndex(currentBlockIndex);
@@ -102,15 +102,6 @@ void Allocator::initInnerStructures() {
 }
 
 void *Allocator::Allocate(size_t size) {
-    void* res = myAllocate(size);
-    size_t blockIndexOfRes = getBlockIndexFromAddr((uint8_t*)res, this->resultBlockLevel);
-    flipFreeTableIndexForBlockBuddies(blockIndexOfRes);
-    this->resultBlockLevel = 0;
-    return res;
-}
-
-
-void *Allocator::myAllocate(size_t size) {
     int i = findBestFitIndex(size);
 
     // this is currently hit only if we received more than max, but we need to take care of the overhead sizes as well
@@ -123,12 +114,12 @@ void *Allocator::myAllocate(size_t size) {
 
         // TODO: NOT SURE IF THESE SHOULD BE HERE
         markParentAsSplit(blockIndexOfRes);
-        //flipFreeTableIndexForBlockBuddies(blockIndexOfRes);
+        flipFreeTableIndexForBlockBuddies(blockIndexOfRes);
         this->resultBlockLevel = i;
         return res;
     } else {
         // we need to split a bigger block
-        void * block = myAllocate(1 << (max_memory_log - i + 1));
+        void * block = Allocate(1 << (max_memory_log - i + 1));
         if (block != nullptr) {
             size_t blockIndex = getBlockIndexFromAddr((uint8_t*)block, i);
             // with the allocate on top we are getting the bigger chunk
@@ -142,14 +133,14 @@ void *Allocator::myAllocate(size_t size) {
 
             // TODO: NOT SURE IF THESE SHOULD BE HERE
             markParentAsSplit(blockIndex);
-            //flipFreeTableIndexForBlockBuddies(blockIndex);
+            flipFreeTableIndexForBlockBuddies(blockIndex);
         }
         this->resultBlockLevel = i;
         return block;
     }
 }
 
-
+// TODO: See when flipFreeTableIndexForBlockBuddies must be called
 void Allocator::Free(void *ptr) {
     size_t allocationLevel = findLevelOfAllocatedBlock(ptr);
     size_t allocationSize = 1 << (max_memory_log - allocationLevel);
@@ -160,16 +151,16 @@ void Allocator::Free(void *ptr) {
 
     // traversing upwards
     while (!isRoot(currentIndex)) {
-        bool isFreeBuddy = isFreeBlockBuddies(currentIndex);
-        if (!isFreeBuddy) {
+        flipFreeTableIndexForBlockBuddies(currentIndex);
+        bool isNotFreeBuddy = isFreeBlockBuddies(currentIndex);
+        if (isNotFreeBuddy) {
             // stopping here and will add ourselves to the free lists of our level
             // Current block will become free therefore we flip
-            flipFreeTableIndexForBlockBuddies(currentIndex);
             break;
         }
 
         // Current block will become free therefore we flip
-        flipFreeTableIndexForBlockBuddies(currentIndex);
+        //flipFreeTableIndexForBlockBuddies(currentIndex);
 
         // we will certainly go 1 level up, so parent will no longer be split
         unmarkParentAsSplit(currentIndex);

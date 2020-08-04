@@ -3,7 +3,7 @@
 
 int main() {
     std::cout << "Hakan's Buddy Memory Allocator main started" << std::endl;
-    SimpleTest();
+    TestWithPowerOfTwo();
     return 0;
 }
 

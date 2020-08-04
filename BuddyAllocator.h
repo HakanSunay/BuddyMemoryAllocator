@@ -50,7 +50,6 @@ class Allocator {
     size_t unusedBlocksCount;
 
     void initInnerStructures();
-    void *myAllocate(size_t size);
 
     inline size_t getBlockIndexFromAddr(uint8_t *ptr, size_t level);
     inline size_t getParentIndex(size_t index);
