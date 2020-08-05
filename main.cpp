@@ -13,6 +13,7 @@ int main() {
     //SimpleTest();
     //TestSuperSmallAllocator();
     //TestFreeInvalidAddress();
+    TestAllocateWithSizeMoreThanManaged();
     return 0;
 }
 

@@ -109,6 +109,7 @@ void *Allocator::Allocate(size_t size) {
     // practically speaking, we can never allocate as much as our whole managed memory space,
     // because we will always have inner structures at lowest level,
     // which in turn means we support at max (1 << max_memory_log - 1) sized allocations, therefore we use >=
+    // in other words, if we get i = 0, we will fail - return nullptr
     if (this->max_memory_log - i >= this->max_memory_log) {
         return nullptr;
     } else if (this->freeLists[i] != nullptr) {
@@ -303,7 +304,8 @@ size_t Allocator::findBestFitIndex(size_t requested_memory) {
     size_t free_list_index = free_list_level_limit;
     size_t size = this->min_block_size;
 
-    while (size < requested_memory) {
+    // if we ever get to index = 0, the allocation will result in nullptr
+    while (size < requested_memory && free_list_index != 0) {
         free_list_index--;
         size <<= 1;
     }

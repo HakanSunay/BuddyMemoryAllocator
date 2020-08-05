@@ -327,5 +327,12 @@ void TestFreeInvalidAddress() {
         exceptionCaught = true;
     }
 
-    std::cout << "Testing invalid minimal size init " << (exceptionCaught ? "succeeded" : "failed") << std::endl;
+    std::cout << "Testing free with invalid address " << (exceptionCaught ? "succeeded" : "failed") << std::endl;
+}
+
+void TestAllocateWithSizeMoreThanManaged() {
+    void *adr = malloc(32);
+    Allocator a = Allocator(adr, 32);
+    void* res = a.Allocate(120);
+    std::cout << "Testing allocate with unexpected size " << (res == nullptr ? "succeeded" : "failed") << std::endl;
 }

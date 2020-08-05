@@ -25,4 +25,6 @@ void TestSuperSmallAllocator();
 
 void TestFreeInvalidAddress();
 
+void TestAllocateWithSizeMoreThanManaged();
+
 #endif //UNTITLED_NEWEST_TESTS_H
