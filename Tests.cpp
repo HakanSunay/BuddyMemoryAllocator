@@ -299,22 +299,15 @@ void SimpleTest() {
     free(adr);
 }
 
-void TestHakanSpecific() {
-    void *adr = malloc(1024);
-    Allocator a = Allocator(adr, 1024);
-    a.Debug(std::cout);
-
-    // TODO: maybe testing like this is not really wise, because m[30] assumes continuous memory
-    int *addresses[4];
-    for (int i = 0; i < 4; ++i) {
-        addresses[i] = (int*)a.Allocate(sizeof(int) * (4 - i) * 4);
-        *addresses[i] = i;
+void TestSuperSmallAllocator() {
+    void *adr = malloc(16);
+    bool exceptionCaught = false;
+    try {
+        Allocator a = Allocator(adr, 16);
+    } catch (char const* exception) {
+        std::cout << "Expected exception was caught: " << exception << std::endl;
+        exceptionCaught = true;
     }
 
-    for (int i = 0; i < 4; ++i) {
-        a.Free(addresses[i]);
-    }
-
-    a.Debug(std::cout);
-    free(adr);
+    std::cout << "Testing invalid minimal size init " << (exceptionCaught ? "succeeded" : "failed") << std::endl;
 }

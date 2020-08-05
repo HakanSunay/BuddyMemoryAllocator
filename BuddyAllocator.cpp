@@ -8,6 +8,11 @@
 #include "Node.h"
 
 Allocator::Allocator(void *addr, size_t size) {
+    if (size < 32) {
+        // TODO: I can create a custom ExceptionClass for this, for better handling
+        throw "Allocator cannot be initialized with size less than 32";
+    }
+
     base_ptr = (uint8_t *)(addr);
 
     actual_size = size;
@@ -35,7 +40,6 @@ Allocator::Allocator(void *addr, size_t size) {
         freeLists[i] = nullptr;
     }
 
-    // HERE: addr + 3 -> NEXT: addr + 4 ( 4 x 8 )
     // TODO: I can probably get the last index of freeList and incr it by sizeof(Node*) [8 bytes]
     this->SplitTable = (uint8_t *) (base_ptr) + free_list_count * sizeof(Node *);
     this->TableSize = ((unsigned) 1 << (free_list_count - 1)) / 8;
@@ -62,10 +66,7 @@ void Allocator::initInnerStructures() {
     size_t tempUnusedBlockIndex = firstUnusedBlockIndex;
     // Must add extra unused blocks first
     for (int i = 0; i < this->unusedBlocksCount; ++i) {
-        // TODO:
-        // Not sure if updating the tables is necessary for unused virtual structures
         markParentAsSplit(tempUnusedBlockIndex);
-        //flipFreeTableIndexForBlockBuddies(tempUnusedBlockIndex);
         tempUnusedBlockIndex++;
     }
 
@@ -80,7 +81,6 @@ void Allocator::initInnerStructures() {
     size_t tempIndex = currentBlockIndex;
     for (int i = 0; i < this->overhead_blocks_count; ++i) {
         markParentAsSplit(tempIndex);
-        //flipFreeTableIndexForBlockBuddies(tempIndex);
         tempIndex--;
     }
 
@@ -90,8 +90,7 @@ void Allocator::initInnerStructures() {
             // nothing to do in this case
         } else if (isLeftBuddy(currentBlockIndex)) {
             void *ptr = getPtrFromBlockIndex(currentBlockIndex, currentLevel);
-            // TODO:
-            // This function is not really safe, I can replace with index & level -> ptr
+            // TODO: This function is not really safe, I can replace with index & level -> ptr
             Node *rightBuddy = FindRightBuddyOf(ptr, max_memory_log - currentLevel);
             rightBuddy->next = nullptr;
 
@@ -107,7 +106,9 @@ void Allocator::initInnerStructures() {
 void *Allocator::Allocate(size_t size) {
     int i = findBestFitIndex(size);
 
-    // this is currently hit only if we received more than max, but we need to take care of the overhead sizes as well
+    // practically speaking, we can never allocate as much as our whole managed memory space,
+    // because we will always have inner structures at lowest level,
+    // which in turn means we support at max (1 << max_memory_log - 1) sized allocations, therefore we use >=
     if (this->max_memory_log - i >= this->max_memory_log) {
         return nullptr;
     } else if (this->freeLists[i] != nullptr) {
@@ -115,10 +116,8 @@ void *Allocator::Allocate(size_t size) {
         void * res = Pop(&this->freeLists[i]);
         size_t blockIndexOfRes = getBlockIndexFromAddr((uint8_t*)res, i);
 
-        // TODO: NOT SURE IF THESE SHOULD BE HERE
         markParentAsSplit(blockIndexOfRes);
         flipFreeTableIndexForBlockBuddies(blockIndexOfRes);
-        this->resultBlockLevel = i;
         return res;
     } else {
         // we need to split a bigger block
@@ -138,12 +137,10 @@ void *Allocator::Allocate(size_t size) {
             markParentAsSplit(blockIndex);
             flipFreeTableIndexForBlockBuddies(blockIndex);
         }
-        this->resultBlockLevel = i;
         return block;
     }
 }
 
-// TODO: See when flipFreeTableIndexForBlockBuddies must be called
 void Allocator::Free(void *ptr) {
     size_t allocationLevel = findLevelOfAllocatedBlock(ptr);
     size_t allocationSize = 1 << (max_memory_log - allocationLevel);
@@ -161,9 +158,6 @@ void Allocator::Free(void *ptr) {
             // Current block will become free therefore we flip
             break;
         }
-
-        // Current block will become free therefore we flip
-        //flipFreeTableIndexForBlockBuddies(currentIndex);
 
         // we will certainly go 1 level up, so parent will no longer be split
         unmarkParentAsSplit(currentIndex);
@@ -330,7 +324,6 @@ bool Allocator::isFreeBlockBuddies(size_t index) {
     return (FreeTable[index / 8] >> (index % 8)) & 1;
 }
 
-// TODO: see why this doesnt match
 void Allocator::flipFreeTableIndexForBlockBuddies(size_t blockIndex) {
     size_t index = (blockIndex - 1) / 2;
     FreeTable[index / 8] ^= (unsigned)1 << (index % 8);

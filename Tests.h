@@ -21,4 +21,6 @@ void TestHakanSpecific();
 
 void SimpleTest();
 
+void TestSuperSmallAllocator();
+
 #endif //UNTITLED_NEWEST_TESTS_H

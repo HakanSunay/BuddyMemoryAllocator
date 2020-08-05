@@ -93,8 +93,6 @@ public:
     void Debug(std::ostream& os);
 
     static void CheckForLeaks();
-
-    int resultBlockLevel;
 };
 
 #endif //UNTITLED_NEWEST_BUDDYALLOCATOR_H
