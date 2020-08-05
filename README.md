@@ -11,8 +11,9 @@ Time taken by system to free: 1758 microseconds
 
 ### Testing Allocation and Deallocation with 1 GB of memory with ranging allocation sizes
 ```
-Time taken by buddy to allocate: 2648 microseconds
-Time taken by system to allocate: 1775 microseconds
-Time taken by buddy to free: 2206 microseconds
-Time taken by system to free: 1838 microseconds
+Time taken by buddy to allocate: 32263 microseconds
+Time taken by system to allocate: 24911 microseconds
+Time taken by buddy to free: 28426 microseconds
+Time taken by system to free: 26026 microseconds
+Ending test huge allocations
 ```
