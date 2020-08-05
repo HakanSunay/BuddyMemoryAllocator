@@ -310,6 +310,7 @@ void TestSuperSmallAllocator() {
     }
 
     std::cout << "Testing invalid minimal size init " << (exceptionCaught ? "succeeded" : "failed") << std::endl;
+    free(adr);
 }
 
 void TestFreeInvalidAddress() {
@@ -328,6 +329,7 @@ void TestFreeInvalidAddress() {
     }
 
     std::cout << "Testing free with invalid address " << (exceptionCaught ? "succeeded" : "failed") << std::endl;
+    free(adr);
 }
 
 void TestAllocateWithSizeMoreThanManaged() {
@@ -335,4 +337,5 @@ void TestAllocateWithSizeMoreThanManaged() {
     Allocator a = Allocator(adr, 32);
     void* res = a.Allocate(120);
     std::cout << "Testing allocate with unexpected size " << (res == nullptr ? "succeeded" : "failed") << std::endl;
+    free(adr);
 }
