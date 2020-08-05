@@ -17,6 +17,8 @@ void ProfileAllocator();
 
 void TestHugeAllocations();
 
+void TestHakanSpecific();
+
 void SimpleTest();
 
 #endif //UNTITLED_NEWEST_TESTS_H

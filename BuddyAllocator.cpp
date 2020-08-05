@@ -17,6 +17,9 @@ Allocator::Allocator(void *addr, size_t size) {
     max_memory_log = ceil(log2(size));
     max_memory_size = (1 << max_memory_log);
 
+    actualVirtualSizeDiff = max_memory_size - actual_size;
+    actualVirtualSizeDiffRoundedToMinAlloc = round_up(actualVirtualSizeDiff, min_block_size);
+
     unusedSpace = max_memory_size - actual_size;
 
     // 4 for current test
@@ -256,8 +259,7 @@ void Allocator::exposeFreeMemory(std::ostream &os) {
     os << "Free memory size as of now: " << totalFreeMemory << "\n";
     os << "Total allocated memory size as of now: " << this->actual_size - totalFreeMemory << "\n";
     os << "Allocated for inner structures: " << this->overhead_blocks_count * min_block_size << "\n";
-    // TODO: not really correct
-    os << "Allocated for users: " << (this->actual_size - totalFreeMemory) - this->overhead_blocks_count * min_block_size << "\n\n";
+    os << "Allocated for users: " << (this->actual_size - totalFreeMemory) - (this->overhead_blocks_count * min_block_size) - (this->actualVirtualSizeDiffRoundedToMinAlloc - this->actualVirtualSizeDiff) << "\n\n";
 }
 
 void Allocator::CheckForLeaks() {
@@ -365,4 +367,8 @@ size_t Allocator::previousPowerOfTwo(size_t num) {
     }
 
     return num;
+}
+
+size_t Allocator::round_up(size_t num, size_t factor) {
+    return num + factor - 1 - (num + factor - 1) % factor;
 }

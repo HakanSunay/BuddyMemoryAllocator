@@ -36,6 +36,8 @@ class Allocator {
     size_t max_memory_log;
     size_t max_memory_size;
     size_t actual_size;
+    size_t actualVirtualSizeDiff;
+    size_t actualVirtualSizeDiffRoundedToMinAlloc;
 
     size_t min_block_log = 4;
     size_t min_block_size = 1 << min_block_log;
@@ -79,6 +81,8 @@ class Allocator {
     void printTree(uint8_t * arr, std::ostream& os, const char *mark);
     void exposeInnerStructures(std::ostream& os);
     void exposeFreeMemory(std::ostream& os);
+
+    size_t round_up(size_t num, size_t factor);
 public:
     Allocator(void* addr, size_t size);
 

@@ -8,6 +8,7 @@
 #include <vector>
 
 void StressTestWithAllocateAndFreeAgainstSystem() {
+    std::cout << "Testing Allocation and Deallocation with 1MB of memory with static 32 byte allocations" << std::endl;
     void *adr = malloc(1048576);
 
     Allocator a  = Allocator(adr, 1048576);
@@ -209,14 +210,14 @@ void ProfileAllocator() {
 }
 
 void TestHugeAllocations() {
-    std::cout << "Testing Allocation and Deallocation with 1 GB of memory" << std::endl;
+    std::cout << "Testing Allocation and Deallocation with 1 GB of memory with ranging allocation sizes" << std::endl;
     // 1 GB - 1 073 741 824
     size_t oneGB = 1073741824;
     void *adr = malloc(oneGB);
 
     Allocator a  = Allocator(adr, oneGB);
 
-    size_t countOfAllocs = 25000;
+    size_t countOfAllocs = 250000;
 
     // blocks of sizes allocBlockSize, allocBlockSize * 2, ..., allocBlockSize * blockDeviation
     // will be allocated sequentially
@@ -262,7 +263,7 @@ void TestHugeAllocations() {
     auto buddyFreeDur = std::chrono::duration_cast<std::chrono::microseconds>(buddyFreeEnd - buddyFreeStart);
     std::cout << "Time taken by buddy to free: " << buddyFreeDur.count() << " microseconds" << std::endl;
 
-    a.Debug(std::cout);
+    //a.Debug(std::cout);
 
 
     // Free benchmark for system
@@ -291,6 +292,26 @@ void SimpleTest() {
     }
 
     for (int i = 0; i < 30; ++i) {
+        a.Free(addresses[i]);
+    }
+
+    a.Debug(std::cout);
+    free(adr);
+}
+
+void TestHakanSpecific() {
+    void *adr = malloc(1024);
+    Allocator a = Allocator(adr, 1024);
+    a.Debug(std::cout);
+
+    // TODO: maybe testing like this is not really wise, because m[30] assumes continuous memory
+    int *addresses[4];
+    for (int i = 0; i < 4; ++i) {
+        addresses[i] = (int*)a.Allocate(sizeof(int) * (4 - i) * 4);
+        *addresses[i] = i;
+    }
+
+    for (int i = 0; i < 4; ++i) {
         a.Free(addresses[i]);
     }
 
