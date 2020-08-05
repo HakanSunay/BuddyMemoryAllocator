@@ -11,7 +11,8 @@ int main() {
     //TestHugeAllocations();
     //TestHakanSpecific();
     //SimpleTest();
-    TestSuperSmallAllocator();
+    //TestSuperSmallAllocator();
+    //TestFreeInvalidAddress();
     return 0;
 }
 

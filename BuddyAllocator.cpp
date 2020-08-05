@@ -142,6 +142,12 @@ void *Allocator::Allocate(size_t size) {
 }
 
 void Allocator::Free(void *ptr) {
+    // Very interesting read by Raymond Chen, which suggests that comparisons on pointers is not well defined:
+    // https://devblogs.microsoft.com/oldnewthing/20170927-00/?p=97095
+    // TODO: Define custom exception class
+    if (((uintptr_t) ptr < (uintptr_t)base_ptr) || ((uintptr_t) ptr > (uintptr_t)base_ptr + actual_size)) {
+        throw "Input address is not managed by the Allocator";
+    }
     size_t allocationLevel = findLevelOfAllocatedBlock(ptr);
     size_t allocationSize = 1 << (max_memory_log - allocationLevel);
     size_t blockIndex = getBlockIndexFromAddr((uint8_t*)ptr, allocationLevel);

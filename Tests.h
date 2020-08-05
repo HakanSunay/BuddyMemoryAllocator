@@ -23,4 +23,6 @@ void SimpleTest();
 
 void TestSuperSmallAllocator();
 
+void TestFreeInvalidAddress();
+
 #endif //UNTITLED_NEWEST_TESTS_H

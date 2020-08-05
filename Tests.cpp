@@ -311,3 +311,21 @@ void TestSuperSmallAllocator() {
 
     std::cout << "Testing invalid minimal size init " << (exceptionCaught ? "succeeded" : "failed") << std::endl;
 }
+
+void TestFreeInvalidAddress() {
+    void *adr = malloc(32);
+    Allocator a = Allocator(adr, 32);
+    bool exceptionCaught = false;
+
+    int randomNum = 5;
+    int* randomDanglingPointer = &randomNum;
+
+    try {
+        a.Free(randomDanglingPointer);
+    } catch (const char* exception) {
+        std::cout << "Expected exception was caught: " << exception << std::endl;
+        exceptionCaught = true;
+    }
+
+    std::cout << "Testing invalid minimal size init " << (exceptionCaught ? "succeeded" : "failed") << std::endl;
+}
