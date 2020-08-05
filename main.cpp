@@ -3,16 +3,15 @@
 
 int main() {
     std::cout << "Hakan's Buddy Memory Allocator main started" << std::endl;
-    //StressTestWithAllocateAndFreeAgainstSystem();
-    //DebugTest();
-    //MixedTest();
-    //TestWithPowerOfTwo();
-    //ProfileAllocator();
-    //TestHugeAllocations();
-    //TestHakanSpecific();
-    //SimpleTest();
-    //TestSuperSmallAllocator();
-    //TestFreeInvalidAddress();
+    StressTestWithAllocateAndFreeAgainstSystem();
+    DebugTest();
+    MixedTest();
+    TestWithPowerOfTwo();
+    ProfileAllocator();
+    TestHugeAllocations();
+    SimpleTest();
+    TestSuperSmallAllocator();
+    TestFreeInvalidAddress();
     TestAllocateWithSizeMoreThanManaged();
     return 0;
 }

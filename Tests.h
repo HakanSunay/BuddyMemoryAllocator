@@ -17,8 +17,6 @@ void ProfileAllocator();
 
 void TestHugeAllocations();
 
-void TestHakanSpecific();
-
 void SimpleTest();
 
 void TestSuperSmallAllocator();
