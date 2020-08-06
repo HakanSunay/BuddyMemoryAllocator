@@ -159,6 +159,7 @@ void Allocator::Free(void *ptr) {
     // traversing upwards
     while (!isRoot(currentIndex)) {
         flipFreeTableIndexForBlockBuddies(currentIndex);
+        // focus on boolean name, not on called function
         bool isNotFreeBuddy = isFreeBlockBuddies(currentIndex);
         if (isNotFreeBuddy) {
             // stopping here and will add ourselves to the free lists of our level
