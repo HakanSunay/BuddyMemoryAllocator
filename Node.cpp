@@ -72,3 +72,19 @@ size_t GetLength(Node **list) {
 
     return len;
 }
+
+bool IsNodePresent(Node **pNode, Node *checkNode) {
+    Node* cur = *pNode;
+    if (cur == nullptr) {
+        return false;
+    }
+
+    while (cur) {
+        if (cur == checkNode) {
+            return true;
+        }
+        cur = cur->next;
+    }
+
+    return false;
+}

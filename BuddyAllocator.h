@@ -47,6 +47,7 @@ class Allocator {
 
     size_t overheadSize;
     size_t overhead_blocks_count;
+    size_t lastInnerStructureBlockIndex;
 
     size_t unusedSpace;
     size_t unusedBlocksCount;
@@ -83,6 +84,10 @@ class Allocator {
     void exposeFreeMemory(std::ostream& os);
 
     size_t round_up(size_t num, size_t factor);
+
+    inline bool isInnerStructure(size_t index);
+
+    inline bool isNotAllocated(size_t index, size_t i, void *pVoid);
 public:
     Allocator(void* addr, size_t size);
 

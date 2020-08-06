@@ -70,8 +70,7 @@ void Allocator::initInnerStructures() {
         tempUnusedBlockIndex++;
     }
 
-
-    size_t lastInnerStructureBlockIndex = getBlockIndexFromAddr(base_ptr + (min_block_size * (overhead_blocks_count - 1)), free_list_level_limit);
+    lastInnerStructureBlockIndex = getBlockIndexFromAddr(base_ptr + (min_block_size * (overhead_blocks_count - 1)), free_list_level_limit);
     // take unused blocks into consideration
     lastInnerStructureBlockIndex += unusedBlocksCount;
     size_t currentBlockIndex = lastInnerStructureBlockIndex;
@@ -156,7 +155,10 @@ void Allocator::Free(void *ptr) {
     size_t currentLevel = allocationLevel;
     size_t currentIndex = blockIndex;
 
-    // TODO: Check block to be freed is actually allocated by us for the user (!innerStr && allocated)
+    // TODO: Add DEBUG MACRO
+    if (isInnerStructure(blockIndex) || isNotAllocated(blockIndex, allocationLevel, ptr)) {
+        return;
+    }
 
     // traversing upwards
     while (!isRoot(currentIndex)) {
@@ -376,4 +378,23 @@ size_t Allocator::previousPowerOfTwo(size_t num) {
 
 size_t Allocator::round_up(size_t num, size_t factor) {
     return num + factor - 1 - (num + factor - 1) % factor;
+}
+
+bool Allocator::isInnerStructure(size_t index) {
+    return ((this->lastInnerStructureBlockIndex - this->overhead_blocks_count) < index) && (index <= this->lastInnerStructureBlockIndex);
+}
+
+bool Allocator::isNotAllocated(size_t index, size_t i, void *pVoid) {
+    // if parent is not split, there is no way for the current block to be allocated
+    if (!this->isSplitBlockByIndex((index - 1) / 2)) {
+        return true;
+    }
+    // if this returns 0, then both the current block and its buddy are allocated
+    if (!isFreeBlockBuddies(index)) {
+        return false;
+    } else {
+        // one of the buddies is free, but is it the current one?
+        // check if current node is present in free list, if yes -> it is not allocated
+        return IsNodePresent(&this->freeLists[i], (Node*) pVoid);
+    }
 }

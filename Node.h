@@ -18,6 +18,8 @@ void PushNewNode(Node **pNode, Node *pNode1);
 
 void RemoveNode(Node** pNode, Node* nodeToBeRemoved);
 
+bool IsNodePresent(Node** pNode, Node* checkNode);
+
 size_t GetLength(Node** list);
 
 #endif //UNTITLED_NEWEST_NODE_H
