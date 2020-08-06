@@ -158,17 +158,18 @@ void Allocator::Free(void *ptr) {
 
     // traversing upwards
     while (!isRoot(currentIndex)) {
-        flipFreeTableIndexForBlockBuddies(currentIndex);
-        // focus on boolean name, not on called function
-        bool isNotFreeBuddy = isFreeBlockBuddies(currentIndex);
-        if (isNotFreeBuddy) {
+        bool isFreeBuddy = isFreeBlockBuddies(currentIndex);
+        if (!isFreeBuddy) {
             // stopping here and will add ourselves to the free lists of our level
-            // Current block will become free therefore we flip
+            // current block will become free therefore we flip
+            flipFreeTableIndexForBlockBuddies(currentIndex);
             break;
         }
 
         // we will certainly go 1 level up, so parent will no longer be split
         unmarkParentAsSplit(currentIndex);
+        // current block will become free therefore we flip
+        flipFreeTableIndexForBlockBuddies(currentIndex);
 
         // our buddy is free, therefore we need to remove it from its free list
         // adding to the actual new free list will be done out of the loop
