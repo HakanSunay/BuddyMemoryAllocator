@@ -155,10 +155,11 @@ void Allocator::Free(void *ptr) {
     size_t currentLevel = allocationLevel;
     size_t currentIndex = blockIndex;
 
-    // TODO: Add DEBUG MACRO
+    #ifdef DEBUG
     if (isInnerStructure(blockIndex) || isNotAllocated(blockIndex, allocationLevel, ptr)) {
         return;
     }
+    #endif
 
     // traversing upwards
     while (!isRoot(currentIndex)) {
