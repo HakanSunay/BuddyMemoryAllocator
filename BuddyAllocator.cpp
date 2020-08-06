@@ -156,6 +156,8 @@ void Allocator::Free(void *ptr) {
     size_t currentLevel = allocationLevel;
     size_t currentIndex = blockIndex;
 
+    // TODO: Check block to be freed is actually allocated by us for the user (!innerStr && allocated)
+
     // traversing upwards
     while (!isRoot(currentIndex)) {
         bool isFreeBuddy = isFreeBlockBuddies(currentIndex);
