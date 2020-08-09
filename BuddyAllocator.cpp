@@ -6,11 +6,16 @@
 #include <iostream>
 #include <cmath>
 #include "Node.h"
+#include "Exception.h"
 
 Allocator::Allocator(void *addr, size_t size) {
-    if (size < 32) {
-        // TODO: I can create a custom ExceptionClass for this, for better handling
-        throw "Allocator cannot be initialized with size less than 32";
+    if (addr == nullptr) {
+        throw Exception(BUDDY_INIT_WITH_NULLPTR_EXCEPTION_MSG);
+    }
+
+    if (size < min_block_size * 2) {
+        // Is throwing exception in constructor a good practice?
+        throw Exception(BUDDY_INIT_EXCEPTION_MSG);
     }
 
     base_ptr = (uint8_t *)(addr);
@@ -145,7 +150,7 @@ void Allocator::Free(void *ptr) {
     // https://devblogs.microsoft.com/oldnewthing/20170927-00/?p=97095
     // TODO: Define custom exception class
     if (((uintptr_t) ptr < (uintptr_t)base_ptr) || ((uintptr_t) ptr > (uintptr_t)base_ptr + actual_size)) {
-        throw "Input address is not managed by the Allocator";
+        throw Exception(BUDDY_FREE_EXCEPTION_MSG);
     }
     size_t allocationLevel = findLevelOfAllocatedBlock(ptr);
     // can be used for debugging
