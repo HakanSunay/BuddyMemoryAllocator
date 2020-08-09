@@ -25,4 +25,8 @@ void TestFreeInvalidAddress();
 
 void TestAllocateWithSizeMoreThanManaged();
 
+void TestDifferentAllocations();
+
+void TestBiggerBigStructures();
+
 #endif //UNTITLED_NEWEST_TESTS_H

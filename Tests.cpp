@@ -291,6 +291,13 @@ void SimpleTest() {
         *addresses[i] = i;
     }
 
+    // Correctness check for buddy
+    for (int i = 0; i < 30; ++i) {
+        if (*addresses[i] != i) {
+            printf("Expected %d, but got %d", i, *addresses[i]);
+        }
+    }
+
     for (int i = 0; i < 30; ++i) {
         a.Free(addresses[i]);
     }
@@ -337,5 +344,83 @@ void TestAllocateWithSizeMoreThanManaged() {
     Allocator a = Allocator(adr, 32);
     void* res = a.Allocate(120);
     std::cout << "Testing allocate with unexpected size " << (res == nullptr ? "succeeded" : "failed") << std::endl;
+    free(adr);
+}
+
+void TestDifferentAllocations() {
+    // 1 GB - 1 073 741 824
+    size_t oneGB = 1073741824;
+    void *adr = malloc(oneGB);
+    Allocator a = Allocator(adr, oneGB);
+
+    a.Debug(std::cout);
+
+
+    int countAllocs = 200;
+    int* addrresses[countAllocs];
+    for (int i = 0; i < countAllocs; ++i) {
+        addrresses[i] = (int *)(a.Allocate(1024 * ((i % 4) + 1)));
+        *addrresses[i] = i;
+    }
+
+    a.Debug(std::cout);
+
+    // Correctness check for buddy
+    for (int i = 0; i < countAllocs; ++i) {
+        if (*addrresses[i] != i) {
+            printf("Expected %d, but got %d", i, *addrresses[i]);
+        }
+    }
+
+    for (int i = 0; i < countAllocs; ++i) {
+        a.Free(addrresses[i]);
+    }
+
+    a.Debug(std::cout);
+
+    free(adr);
+}
+
+void TestBiggerBigStructures() {
+    typedef struct test {
+        double x;
+        double y;
+        double z;
+        int k;
+    };
+
+    size_t oneKB = 1024;
+    void *adr = malloc(oneKB);
+    Allocator a = Allocator(adr, oneKB);
+
+    a.Debug(std::cout);
+
+
+    int countAllocs = 10;
+    test * addrresses[countAllocs];
+    for (int i = 0; i < countAllocs; ++i) {
+        addrresses[i] = (test *)(a.Allocate(sizeof(test)));
+        (*addrresses[i]).x = i + 1;
+        (*addrresses[i]).y = i + 2;
+        (*addrresses[i]).z = i + 3;
+        (*addrresses[i]).k = i + 4;
+
+    }
+
+    a.Debug(std::cout);
+
+    // Correctness check for buddy
+    for (int i = 0; i < countAllocs; ++i) {
+        if ((*addrresses[i]).x != i + 1 || (*addrresses[i]).y != i + 2 || (*addrresses[i]).z != i + 3 || (*addrresses[i]).k != i + 4) {
+            printf("Unexpected result");
+        }
+    }
+
+    for (int i = 0; i < countAllocs; ++i) {
+        a.Free(addrresses[i]);
+    }
+
+    a.Debug(std::cout);
+
     free(adr);
 }
