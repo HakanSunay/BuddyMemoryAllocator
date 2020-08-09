@@ -9,6 +9,10 @@
 #include <cmath>
 #include "Node.h"
 
+extern const char* BUDDY_INIT_EXCEPTION_MSG;
+extern const char* BUDDY_INIT_WITH_NULLPTR_EXCEPTION_MSG;
+extern const char* BUDDY_FREE_EXCEPTION_MSG;
+
 // TODO: Add error handling
 // TODO: See how can we handle memory leaks
 // Interesting reads below:
@@ -87,6 +91,8 @@ class Allocator {
     inline bool isInnerStructure(size_t index);
 
     inline bool isNotAllocated(size_t index, size_t i, void *pVoid);
+
+    size_t getCurrentFreeMemory();
 public:
     Allocator(void* addr, size_t size);
 
@@ -96,7 +102,17 @@ public:
 
     void Debug(std::ostream& os);
 
+    ~Allocator();
+
     static void CheckForLeaks();
 };
+
+#include <stdexcept>
+
+class Exception: public std::runtime_error {
+public:
+    Exception(const char* what);
+};
+
 
 #endif //BUDDY_ALLOCATOR_BUDDYALLOCATOR_H

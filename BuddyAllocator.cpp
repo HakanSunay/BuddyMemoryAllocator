@@ -6,7 +6,10 @@
 #include <iostream>
 #include <cmath>
 #include "Node.h"
-#include "Exception.h"
+
+const char* BUDDY_INIT_EXCEPTION_MSG = "Allocator cannot be initialized with size less than twice of minimum block size";
+const char* BUDDY_INIT_WITH_NULLPTR_EXCEPTION_MSG = "Allocator cannot be initialized using nullptr as the memory block to be managed";
+const char* BUDDY_FREE_EXCEPTION_MSG = "Input address is not managed by the Allocator";
 
 Allocator::Allocator(void *addr, size_t size) {
     if (addr == nullptr) {
@@ -412,3 +415,23 @@ bool Allocator::isNotAllocated(size_t index, size_t i, void *pVoid) {
         return IsNodePresent(&this->freeLists[i], (Node*) pVoid);
     }
 }
+
+Allocator::~Allocator() {
+    size_t totalFreeMemory = getCurrentFreeMemory();
+    size_t allocatedUserMemory = (this->actual_size - totalFreeMemory) - (this->overhead_blocks_count * min_block_size) - (this->actualVirtualSizeDiffRoundedToMinAlloc - this->actualVirtualSizeDiff);
+    if (allocatedUserMemory > 0) {
+        std::cout << "Destroying Allocator, in spite of memory leak of: " << allocatedUserMemory << " bytes\n\n";
+    }
+}
+
+size_t Allocator::getCurrentFreeMemory() {
+    size_t totalFreeMemory = 0;
+    for (int i = 0; i < this->free_list_count; ++i) {
+        size_t freeBlockCountOnCurrentLevel = GetLength(&freeLists[i]);
+        totalFreeMemory += ((1 << (max_memory_log - i)) * freeBlockCountOnCurrentLevel);
+    }
+
+    return totalFreeMemory;
+}
+
+Exception::Exception(const char *what) : runtime_error(what) {}

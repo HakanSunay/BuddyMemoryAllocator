@@ -311,8 +311,8 @@ void TestSuperSmallAllocator() {
     bool exceptionCaught = false;
     try {
         Allocator a = Allocator(adr, 16);
-    } catch (char const* exception) {
-        std::cout << "Expected exception was caught: " << exception << std::endl;
+    } catch (Exception exception) {
+        std::cout << "Expected exception was caught: " << exception.what() << std::endl;
         exceptionCaught = true;
     }
 
@@ -330,8 +330,8 @@ void TestFreeInvalidAddress() {
 
     try {
         a.Free(randomDanglingPointer);
-    } catch (const char* exception) {
-        std::cout << "Expected exception was caught: " << exception << std::endl;
+    } catch (Exception exception) {
+        std::cout << "Expected exception was caught: " << exception.what() << std::endl;
         exceptionCaught = true;
     }
 
@@ -387,7 +387,7 @@ void TestBiggerBigStructures() {
         double y;
         double z;
         int k;
-    };
+    } test;
 
     size_t oneKB = 1024;
     void *adr = malloc(oneKB);
