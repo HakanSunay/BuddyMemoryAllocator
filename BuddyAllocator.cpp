@@ -133,7 +133,6 @@ void *Allocator::Allocate(size_t size) {
 
             PushNewNode(&this->freeLists[i], (Node*)buddy);
 
-            // TODO: NOT SURE IF THESE SHOULD BE HERE
             markParentAsSplit(blockIndex);
             flipFreeTableIndexForBlockBuddies(blockIndex);
         }
@@ -149,7 +148,8 @@ void Allocator::Free(void *ptr) {
         throw "Input address is not managed by the Allocator";
     }
     size_t allocationLevel = findLevelOfAllocatedBlock(ptr);
-    size_t allocationSize = 1 << (max_memory_log - allocationLevel);
+    // can be used for debugging
+    // size_t allocationSize = 1 << (max_memory_log - allocationLevel);
     size_t blockIndex = getBlockIndexFromAddr((uint8_t*)ptr, allocationLevel);
 
     size_t currentLevel = allocationLevel;
@@ -275,6 +275,9 @@ void Allocator::CheckForLeaks() {
 }
 
 size_t Allocator::getBlockIndexFromAddr(uint8_t *ptr, size_t level) {
+    // find offset between base_ptr and input ptr
+    // divide to find index offset from first block on that level
+    // add to first index on that level
     return ((ptr - base_ptr) >> (max_memory_log - level)) + (1 << level) - 1;
 }
 
@@ -283,7 +286,10 @@ size_t Allocator::getParentIndex(size_t index) {
 }
 
 uint8_t *Allocator::getPtrFromBlockIndex(size_t index, size_t level) {
-   return base_ptr + ((index - (1 << level) + 1) << (this->max_memory_log - level));
+    // find index offset from first index on that level
+    // multiply it by block size on that level
+    // add resulting bytes offset to base_ptr
+    return base_ptr + ((index - (1 << level) + 1) << (this->max_memory_log - level));
 }
 
 bool Allocator::isRoot(size_t index) {
@@ -314,6 +320,7 @@ size_t Allocator::findBestFitIndex(size_t requested_memory) {
     // if we ever get to index = 0, the allocation will result in nullptr
     while (size < requested_memory && free_list_index != 0) {
         free_list_index--;
+        // multiply by 2^1
         size <<= 1;
     }
 
@@ -352,6 +359,7 @@ bool Allocator::isSplitByAddrAndLevel(void *adr, size_t level) {
 size_t Allocator::findLevelOfAllocatedBlock(void *addr) {
     size_t currentLevel = free_list_level_limit;
     while (currentLevel > 0) {
+        // if parent is split, addr is in current level
         if (isSplitByAddrAndLevel(addr, currentLevel - 1)) {
             return currentLevel;
         }

@@ -10,7 +10,6 @@
 #include "Node.h"
 
 // TODO: Add error handling
-// TODO: Add logging
 // TODO: See how can we handle memory leaks
 // Interesting reads below:
 // https://stackoverflow.com/questions/9074229/detecting-memory-leaks-in-c-programs
