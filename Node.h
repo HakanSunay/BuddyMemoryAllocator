@@ -2,8 +2,8 @@
 // Created by Hakan Halil on 1.08.20.
 //
 
-#ifndef UNTITLED_NEWEST_NODE_H
-#define UNTITLED_NEWEST_NODE_H
+#ifndef BUDDY_ALLOCATOR_NODE_H
+#define BUDDY_ALLOCATOR_NODE_H
 
 #include <cstdlib>
 
@@ -22,4 +22,4 @@ bool IsNodePresent(Node** pNode, Node* checkNode);
 
 size_t GetLength(Node** list);
 
-#endif //UNTITLED_NEWEST_NODE_H
+#endif //BUDDY_ALLOCATOR_NODE_H

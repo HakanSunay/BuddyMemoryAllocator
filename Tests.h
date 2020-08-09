@@ -2,8 +2,8 @@
 // Created by Hakan Halil on 1.08.20.
 //
 
-#ifndef UNTITLED_NEWEST_TESTS_H
-#define UNTITLED_NEWEST_TESTS_H
+#ifndef BUDDY_ALLOCATOR_TESTS_H
+#define BUDDY_ALLOCATOR_TESTS_H
 
 void StressTestWithAllocateAndFreeAgainstSystem();
 
@@ -29,4 +29,4 @@ void TestDifferentAllocations();
 
 void TestBiggerBigStructures();
 
-#endif //UNTITLED_NEWEST_TESTS_H
+#endif //BUDDY_ALLOCATOR_TESTS_H

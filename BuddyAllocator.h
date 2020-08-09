@@ -2,8 +2,8 @@
 // Created by Hakan Halil on 1.08.20.
 //
 
-#ifndef UNTITLED_NEWEST_BUDDYALLOCATOR_H
-#define UNTITLED_NEWEST_BUDDYALLOCATOR_H
+#ifndef BUDDY_ALLOCATOR_BUDDYALLOCATOR_H
+#define BUDDY_ALLOCATOR_BUDDYALLOCATOR_H
 
 #include <iostream>
 #include <cmath>
@@ -99,4 +99,4 @@ public:
     static void CheckForLeaks();
 };
 
-#endif //UNTITLED_NEWEST_BUDDYALLOCATOR_H
+#endif //BUDDY_ALLOCATOR_BUDDYALLOCATOR_H
