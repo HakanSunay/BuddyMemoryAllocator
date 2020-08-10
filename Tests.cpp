@@ -6,6 +6,7 @@
 #include "BuddyAllocator.h"
 #include <cstdlib>
 #include <vector>
+#include <iostream>
 
 void StressTestWithAllocateAndFreeAgainstSystem() {
     std::cout << "Testing Allocation and Deallocation with 1MB of memory with static 32 byte allocations" << std::endl;
@@ -423,4 +424,31 @@ void TestBiggerBigStructures() {
     a.Debug(std::cout);
 
     free(adr);
+}
+
+void TestWithCharBuffer() {
+    char buffer[101];
+    Allocator a = Allocator(buffer + 1, 100);
+    a.Debug(std::cout);
+
+    int* addrresses[2];
+    for (int i = 0; i < 2; ++i) {
+        addrresses[i] = static_cast<int *>(a.Allocate(sizeof(int)));
+        *addrresses[i] = i;
+    }
+
+    a.Debug(std::cout);
+
+    // Correctness check for buddy
+    for (int i = 0; i < 2; ++i) {
+        if (*addrresses[i] != i) {
+            std::cout << "Expected "<< i <<", but got " << *addrresses[i];
+        }
+    }
+
+    for (int i = 0; i < 2; ++i) {
+        a.Free(addrresses[i]);
+    }
+
+    a.Debug(std::cout);
 }

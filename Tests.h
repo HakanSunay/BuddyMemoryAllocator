@@ -29,4 +29,7 @@ void TestDifferentAllocations();
 
 void TestBiggerBigStructures();
 
+void TestWithCharBuffer();
+
+
 #endif //BUDDY_ALLOCATOR_TESTS_H

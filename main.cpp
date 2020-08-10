@@ -3,6 +3,7 @@
 
 int main() {
     std::cout << "Hakan's Buddy Memory Allocator main started" << std::endl;
+    TestWithCharBuffer();
     TestBiggerBigStructures();
     StressTestWithAllocateAndFreeAgainstSystem();
     DebugTest();

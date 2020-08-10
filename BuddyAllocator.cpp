@@ -27,16 +27,16 @@ Allocator::Allocator(void *addr, size_t size) {
 
     // max_memory_log is the ceiled log, example:
     // 500 size -> log2(512)
-    max_memory_log = ceil(log2(size));
+    max_memory_log = floor(log2(size)); //ceil(log2(size));
     max_memory_size = (1 << max_memory_log);
 
-    actualVirtualSizeDiff = max_memory_size - actual_size;
-    actualVirtualSizeDiffRoundedToMinAlloc = round_up(actualVirtualSizeDiff, min_block_size);
+    actualVirtualSizeDiff = 0; //max_memory_size - actual_size;
+    actualVirtualSizeDiffRoundedToMinAlloc = 0; //round_up(actualVirtualSizeDiff, min_block_size);
 
     unusedSpace = max_memory_size - actual_size;
 
     // 4 for current test
-    unusedBlocksCount = ceil(unusedSpace / float(min_block_size));
+    unusedBlocksCount = 0; // ceil(unusedSpace / float(min_block_size));
 
     free_list_count = max_memory_log - min_block_log + 1;
     free_list_level_limit = free_list_count - 1;
@@ -51,6 +51,7 @@ Allocator::Allocator(void *addr, size_t size) {
     // TODO: I can probably get the last index of freeList and incr it by sizeof(Node*) [8 bytes]
     this->SplitTable = (uint8_t *) (base_ptr) + free_list_count * sizeof(Node *);
     this->TableSize = ((unsigned) 1 << (free_list_count - 1)) / 8;
+    if (this->TableSize == 0 ) {this->TableSize = 1;}
     for (int j = 0; j < TableSize; ++j) {
         this->SplitTable[j] = 0;
     }
@@ -68,6 +69,8 @@ Allocator::Allocator(void *addr, size_t size) {
     initInnerStructures();
 }
 
+// TODO: Unused block logic is broken
+// TODO: Alignment
 void Allocator::initInnerStructures() {
     // last level first index => 2^max_level - 1
     size_t firstUnusedBlockIndex = (1 << free_list_level_limit) - 1;
@@ -152,9 +155,9 @@ void Allocator::Free(void *ptr) {
     // Very interesting read by Raymond Chen, which suggests that comparisons on pointers is not well defined:
     // https://devblogs.microsoft.com/oldnewthing/20170927-00/?p=97095
     // TODO: Define custom exception class
-    if (((uintptr_t) ptr < (uintptr_t)base_ptr) || ((uintptr_t) ptr > (uintptr_t)base_ptr + actual_size)) {
-        throw Exception(BUDDY_FREE_EXCEPTION_MSG);
-    }
+//    if (((uintptr_t) ptr < (uintptr_t)base_ptr) || ((uintptr_t) ptr > (uintptr_t)base_ptr + actual_size)) {
+//        throw Exception(BUDDY_FREE_EXCEPTION_MSG);
+//    }
     size_t allocationLevel = findLevelOfAllocatedBlock(ptr);
     // can be used for debugging
     // size_t allocationSize = 1 << (max_memory_log - allocationLevel);
@@ -272,10 +275,11 @@ void Allocator::exposeFreeMemory(std::ostream &os) {
         totalFreeMemory += ((1 << (max_memory_log - i)) * freeBlockCountOnCurrentLevel);
     }
 
+    // TODO: max_size --> to actual_size if any memory alloc is supported
     os << "Free memory size as of now: " << totalFreeMemory << "\n";
-    os << "Total allocated memory size as of now: " << this->actual_size - totalFreeMemory << "\n";
+    os << "Total allocated memory size as of now: " << this->max_memory_size - totalFreeMemory << "\n";
     os << "Allocated for inner structures: " << this->overhead_blocks_count * min_block_size << "\n";
-    os << "Allocated for users: " << (this->actual_size - totalFreeMemory) - (this->overhead_blocks_count * min_block_size) - (this->actualVirtualSizeDiffRoundedToMinAlloc - this->actualVirtualSizeDiff) << "\n\n";
+    os << "Allocated for users: " << (this->max_memory_size - totalFreeMemory) - (this->overhead_blocks_count * min_block_size) - (this->actualVirtualSizeDiffRoundedToMinAlloc - this->actualVirtualSizeDiff) << "\n\n";
 }
 
 void Allocator::CheckForLeaks() {
@@ -418,7 +422,7 @@ bool Allocator::isNotAllocated(size_t index, size_t i, void *pVoid) {
 
 Allocator::~Allocator() {
     size_t totalFreeMemory = getCurrentFreeMemory();
-    size_t allocatedUserMemory = (this->actual_size - totalFreeMemory) - (this->overhead_blocks_count * min_block_size) - (this->actualVirtualSizeDiffRoundedToMinAlloc - this->actualVirtualSizeDiff);
+    size_t allocatedUserMemory = (this->max_memory_size - totalFreeMemory) - (this->overhead_blocks_count * min_block_size) - (this->actualVirtualSizeDiffRoundedToMinAlloc - this->actualVirtualSizeDiff);
     if (allocatedUserMemory > 0) {
         std::cout << "Destroying Allocator, in spite of memory leak of: " << allocatedUserMemory << " bytes\n\n";
     }
