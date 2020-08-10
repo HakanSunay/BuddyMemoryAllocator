@@ -43,7 +43,8 @@ Allocator::Allocator(void *addr, size_t size) {
 
     // 4 for current test
     unusedBlocksCount = ceil(unusedSpace / float(min_block_size));
-    
+
+    // TODO: What are the safety implications of this
     // this will point to an address that is not ours
     base_ptr -= actualVirtualSizeDiffRoundedToMinAlloc;
 
