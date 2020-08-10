@@ -10,6 +10,7 @@
 #include "Node.h"
 
 extern const char* BUDDY_INIT_EXCEPTION_MSG;
+extern const char* BUDDY_INIT_MISALIGNED_MEMORY_EXCEPTION_MSG;
 extern const char* BUDDY_INIT_WITH_NULLPTR_EXCEPTION_MSG;
 extern const char* BUDDY_FREE_EXCEPTION_MSG;
 
