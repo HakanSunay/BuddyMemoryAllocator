@@ -69,7 +69,7 @@ Allocator::Allocator(void *addr, size_t size) {
     initInnerStructures();
 }
 
-// TODO: Unused block logic is broken
+// TODO: Unused block logic is broken, therefore DISABLED for now
 // TODO: Alignment
 void Allocator::initInnerStructures() {
     // last level first index => 2^max_level - 1
