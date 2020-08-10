@@ -36,6 +36,7 @@ class Allocator {
     size_t TableSize;
 
     uint8_t *base_ptr;
+    uint8_t *actual_ptr;
 
     size_t max_memory_log;
     size_t max_memory_size;

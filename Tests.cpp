@@ -431,8 +431,8 @@ void TestWithCharBuffer() {
     Allocator a = Allocator(buffer + 1, 100);
     a.Debug(std::cout);
 
-    int* addrresses[2];
-    for (int i = 0; i < 2; ++i) {
+    int* addrresses[3];
+    for (int i = 0; i < 3; ++i) {
         addrresses[i] = static_cast<int *>(a.Allocate(sizeof(int)));
         *addrresses[i] = i;
     }
@@ -440,13 +440,13 @@ void TestWithCharBuffer() {
     a.Debug(std::cout);
 
     // Correctness check for buddy
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < 3; ++i) {
         if (*addrresses[i] != i) {
             std::cout << "Expected "<< i <<", but got " << *addrresses[i];
         }
     }
 
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < 3; ++i) {
         a.Free(addrresses[i]);
     }
 

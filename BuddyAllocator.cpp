@@ -17,9 +17,9 @@ Allocator::Allocator(void *addr, size_t size) {
         throw Exception(BUDDY_INIT_WITH_NULLPTR_EXCEPTION_MSG);
     }
 
-    if ((uintptr_t) addr % alignof(Node*)) {
-        throw Exception(BUDDY_INIT_MISALIGNED_MEMORY_EXCEPTION_MSG);
-    }
+//    if ((uintptr_t) addr % alignof(Node*)) {
+//        throw Exception(BUDDY_INIT_MISALIGNED_MEMORY_EXCEPTION_MSG);
+//    }
 
     if (size < min_block_size * 2) {
         // Is throwing exception in constructor a good practice?
@@ -29,32 +29,38 @@ Allocator::Allocator(void *addr, size_t size) {
     base_ptr = (uint8_t *)(addr);
 
     actual_size = size;
+    actual_ptr = (uint8_t *)(addr);
 
     // max_memory_log is the ceiled log, example:
     // 500 size -> log2(512)
-    max_memory_log = floor(log2(size)); //ceil(log2(size));
+    max_memory_log = ceil(log2(size));
     max_memory_size = (1 << max_memory_log);
 
-    actualVirtualSizeDiff = 0; //max_memory_size - actual_size;
-    actualVirtualSizeDiffRoundedToMinAlloc = 0; //round_up(actualVirtualSizeDiff, min_block_size);
+    actualVirtualSizeDiff = max_memory_size - actual_size;
+    actualVirtualSizeDiffRoundedToMinAlloc = round_up(actualVirtualSizeDiff, min_block_size);
 
     unusedSpace = max_memory_size - actual_size;
 
     // 4 for current test
-    unusedBlocksCount = 0; // ceil(unusedSpace / float(min_block_size));
+    unusedBlocksCount = ceil(unusedSpace / float(min_block_size));
+    
+    // this will point to an address that is not ours
+    base_ptr -= actualVirtualSizeDiffRoundedToMinAlloc;
+
 
     free_list_count = max_memory_log - min_block_log + 1;
     free_list_level_limit = free_list_count - 1;
 
     // init free lists
-    freeLists = (Node**) base_ptr;
+    uint8_t * init_ptr = static_cast<uint8_t *>(addr);
+    freeLists = (Node**) init_ptr;
     for (int i = 0; i < free_list_count; ++i) {
-        freeLists[i] = ((Node*) base_ptr) + i;
+        freeLists[i] = ((Node*) init_ptr) + i;
         freeLists[i] = nullptr;
     }
 
     // TODO: I can probably get the last index of freeList and incr it by sizeof(Node*) [8 bytes]
-    this->SplitTable = (uint8_t *) (base_ptr) + free_list_count * sizeof(Node *);
+    this->SplitTable = (uint8_t *) (init_ptr) + free_list_count * sizeof(Node *);
     this->TableSize = ((unsigned) 1 << (free_list_count - 1)) / 8;
     if (this->TableSize == 0 ) {this->TableSize = 1;}
     for (int j = 0; j < TableSize; ++j) {
@@ -62,7 +68,7 @@ Allocator::Allocator(void *addr, size_t size) {
     }
 
     // TODO: I can probably get the last index of SplitTable and incr it by sizeof(uint8_t) [1 byte]
-    this->FreeTable = (uint8_t *) (base_ptr) + (free_list_count * sizeof(Node *)) + (TableSize * sizeof(uint8_t));
+    this->FreeTable = (uint8_t *) (init_ptr) + (free_list_count * sizeof(Node *)) + (TableSize * sizeof(uint8_t));
     for (int k = 0; k < TableSize; ++k) {
         this->FreeTable[k] = 0;
     }
@@ -106,6 +112,7 @@ void Allocator::initInnerStructures() {
         } else if (isLeftBuddy(currentBlockIndex)) {
             void *ptr = getPtrFromBlockIndex(currentBlockIndex, currentLevel);
             // TODO: This function is not really safe, I can replace with index & level -> ptr
+
             Node *rightBuddy = FindRightBuddyOf(ptr, max_memory_log - currentLevel);
             rightBuddy->next = nullptr;
 
@@ -160,9 +167,9 @@ void Allocator::Free(void *ptr) {
     // Very interesting read by Raymond Chen, which suggests that comparisons on pointers is not well defined:
     // https://devblogs.microsoft.com/oldnewthing/20170927-00/?p=97095
     // TODO: Define custom exception class
-//    if (((uintptr_t) ptr < (uintptr_t)base_ptr) || ((uintptr_t) ptr > (uintptr_t)base_ptr + actual_size)) {
-//        throw Exception(BUDDY_FREE_EXCEPTION_MSG);
-//    }
+    if (((uintptr_t) ptr < (uintptr_t)base_ptr) || ((uintptr_t) ptr > (uintptr_t)base_ptr + max_memory_size)) {
+        throw Exception(BUDDY_FREE_EXCEPTION_MSG);
+    }
     size_t allocationLevel = findLevelOfAllocatedBlock(ptr);
     // can be used for debugging
     // size_t allocationSize = 1 << (max_memory_log - allocationLevel);
@@ -282,9 +289,9 @@ void Allocator::exposeFreeMemory(std::ostream &os) {
 
     // TODO: max_size --> to actual_size if any memory alloc is supported
     os << "Free memory size as of now: " << totalFreeMemory << "\n";
-    os << "Total allocated memory size as of now: " << this->max_memory_size - totalFreeMemory << "\n";
+    os << "Total allocated memory size as of now: " << this->actual_size - totalFreeMemory << "\n";
     os << "Allocated for inner structures: " << this->overhead_blocks_count * min_block_size << "\n";
-    os << "Allocated for users: " << (this->max_memory_size - totalFreeMemory) - (this->overhead_blocks_count * min_block_size) - (this->actualVirtualSizeDiffRoundedToMinAlloc - this->actualVirtualSizeDiff) << "\n\n";
+    os << "Allocated for users: " << (this->actual_size - totalFreeMemory) - (this->overhead_blocks_count * min_block_size) - (this->actualVirtualSizeDiffRoundedToMinAlloc - this->actualVirtualSizeDiff) << "\n\n";
 }
 
 void Allocator::CheckForLeaks() {
@@ -427,7 +434,7 @@ bool Allocator::isNotAllocated(size_t index, size_t i, void *pVoid) {
 
 Allocator::~Allocator() {
     size_t totalFreeMemory = getCurrentFreeMemory();
-    size_t allocatedUserMemory = (this->max_memory_size - totalFreeMemory) - (this->overhead_blocks_count * min_block_size) - (this->actualVirtualSizeDiffRoundedToMinAlloc - this->actualVirtualSizeDiff);
+    size_t allocatedUserMemory = (this->actual_size - totalFreeMemory) - (this->overhead_blocks_count * min_block_size) - (this->actualVirtualSizeDiffRoundedToMinAlloc - this->actualVirtualSizeDiff);
     if (allocatedUserMemory > 0) {
         std::cout << "Destroying Allocator, in spite of memory leak of: " << allocatedUserMemory << " bytes\n\n";
     }
