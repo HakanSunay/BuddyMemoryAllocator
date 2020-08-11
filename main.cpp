@@ -3,6 +3,7 @@
 
 int main() {
     std::cout << "Hakan's Buddy Memory Allocator main started" << std::endl;
+    TestTryingToFreeAddressThatIsFromOurBlockButNotOurs();
     TestWithCharBufferWithNonPowTwoSize();
     TestMisalignedMemoryWithPowerOfTwo();
     TestWithCharBufferAlignMissMoreThanOne();

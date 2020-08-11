@@ -533,3 +533,19 @@ void TestWithCharBufferWithNonPowTwoSize() {
 
     a.Debug(std::cout);
 }
+
+void TestTryingToFreeAddressThatIsFromOurBlockButNotOurs() {
+    char buffer[101];
+    Allocator a = Allocator(buffer + 2, 99);
+
+    bool exceptionCaught = false;
+    try {
+        // buffer - 18 is in our blocks, but access to it is strictly forbidden
+        a.Free(buffer - 18);
+    } catch (Exception exception) {
+        std::cout << "Expected exception was caught: " << exception.what() << std::endl;
+        exceptionCaught = true;
+    }
+
+    std::cout << "Testing freeing address in our block but not ours " << (exceptionCaught ? "succeeded" : "failed") << std::endl;
+}

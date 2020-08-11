@@ -37,5 +37,7 @@ void TestMisalignedMemoryWithPowerOfTwo();
 
 void TestWithCharBufferWithNonPowTwoSize();
 
+void TestTryingToFreeAddressThatIsFromOurBlockButNotOurs();
+
 
 #endif //BUDDY_ALLOCATOR_TESTS_H
