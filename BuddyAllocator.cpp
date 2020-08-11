@@ -46,6 +46,8 @@ Allocator::Allocator(void *addr, size_t size) {
 
     // TODO: What are the safety implications of this
     // this will point to an address that is not ours
+    // if we subtract actualVirtualSizeDiff, we will fragment at the beginning of the given adr
+    // if we subtract actualVirtualSizeDiffRoundedToMinAlloc, we will fragment at the end of the given adr
     base_ptr -= actualVirtualSizeDiffRoundedToMinAlloc;
 
 
@@ -291,6 +293,7 @@ void Allocator::exposeFreeMemory(std::ostream &os) {
     // TODO: max_size --> to actual_size if any memory alloc is supported
     os << "Free memory size as of now: " << totalFreeMemory << "\n";
     os << "Total allocated memory size as of now: " << this->actual_size - totalFreeMemory << "\n";
+    os << "Fragmented memory size: " << this->actualVirtualSizeDiffRoundedToMinAlloc - this->actualVirtualSizeDiff << "\n";
     os << "Allocated for inner structures: " << this->overhead_blocks_count * min_block_size << "\n";
     os << "Allocated for users: " << (this->actual_size - totalFreeMemory) - (this->overhead_blocks_count * min_block_size) - (this->actualVirtualSizeDiffRoundedToMinAlloc - this->actualVirtualSizeDiff) << "\n\n";
 }
@@ -433,12 +436,13 @@ bool Allocator::isNotAllocated(size_t index, size_t i, void *pVoid) {
     }
 }
 
+// TODO: If you free the malloc address, the destructor will fail
 Allocator::~Allocator() {
-    size_t totalFreeMemory = getCurrentFreeMemory();
-    size_t allocatedUserMemory = (this->actual_size - totalFreeMemory) - (this->overhead_blocks_count * min_block_size) - (this->actualVirtualSizeDiffRoundedToMinAlloc - this->actualVirtualSizeDiff);
-    if (allocatedUserMemory > 0) {
-        std::cout << "Destroying Allocator, in spite of memory leak of: " << allocatedUserMemory << " bytes\n\n";
-    }
+//    size_t totalFreeMemory = getCurrentFreeMemory();
+//    size_t allocatedUserMemory = (this->actual_size - totalFreeMemory) - (this->overhead_blocks_count * min_block_size) - (this->actualVirtualSizeDiffRoundedToMinAlloc - this->actualVirtualSizeDiff);
+//    if (allocatedUserMemory > 0) {
+//        std::cout << "Destroying Allocator, in spite of memory leak of: " << allocatedUserMemory << " bytes\n\n";
+//    }
 }
 
 size_t Allocator::getCurrentFreeMemory() {
