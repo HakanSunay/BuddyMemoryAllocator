@@ -426,9 +426,63 @@ void TestBiggerBigStructures() {
     free(adr);
 }
 
-void TestWithCharBuffer() {
+void TestWithCharBufferAlignMissOne() {
     char buffer[101];
     Allocator a = Allocator(buffer + 1, 100);
+    a.Debug(std::cout);
+
+    int* addrresses[2];
+    for (int i = 0; i < 2; ++i) {
+        addrresses[i] = static_cast<int *>(a.Allocate(sizeof(int)));
+        *addrresses[i] = i;
+    }
+
+    a.Debug(std::cout);
+
+    // Correctness check for buddy
+    for (int i = 0; i < 2; ++i) {
+        if (*addrresses[i] != i) {
+            std::cout << "Expected "<< i <<", but got " << *addrresses[i];
+        }
+    }
+
+    for (int i = 0; i < 2; ++i) {
+        a.Free(addrresses[i]);
+    }
+
+    a.Debug(std::cout);
+}
+
+void TestWithCharBufferAlignMissMoreThanOne() {
+    char buffer[101];
+    Allocator a = Allocator(buffer + 2, 99);
+    a.Debug(std::cout);
+
+    int* addrresses[2];
+    for (int i = 0; i < 2; ++i) {
+        addrresses[i] = static_cast<int *>(a.Allocate(sizeof(int)));
+        *addrresses[i] = i;
+    }
+
+    a.Debug(std::cout);
+
+    // Correctness check for buddy
+    for (int i = 0; i < 2; ++i) {
+        if (*addrresses[i] != i) {
+            std::cout << "Expected "<< i <<", but got " << *addrresses[i];
+        }
+    }
+
+    for (int i = 0; i < 2; ++i) {
+        a.Free(addrresses[i]);
+    }
+
+    a.Debug(std::cout);
+}
+
+void TestMisalignedMemoryWithPowerOfTwo() {
+    char buffer[130];
+    Allocator a = Allocator(buffer + 2, 128);
     a.Debug(std::cout);
 
     int* addrresses[3];

@@ -29,7 +29,11 @@ void TestDifferentAllocations();
 
 void TestBiggerBigStructures();
 
-void TestWithCharBuffer();
+void TestWithCharBufferAlignMissOne();
+
+void TestWithCharBufferAlignMissMoreThanOne();
+
+void TestMisalignedMemoryWithPowerOfTwo();
 
 
 #endif //BUDDY_ALLOCATOR_TESTS_H

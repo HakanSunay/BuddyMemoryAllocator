@@ -57,6 +57,8 @@ class Allocator {
     size_t unusedSpace;
     size_t unusedBlocksCount;
 
+    size_t alignmentFragmentationSize;
+
     void initInnerStructures();
 
     inline size_t getBlockIndexFromAddr(uint8_t *ptr, size_t level);

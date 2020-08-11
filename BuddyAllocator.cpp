@@ -50,12 +50,24 @@ Allocator::Allocator(void *addr, size_t size) {
     // if we subtract actualVirtualSizeDiffRoundedToMinAlloc, we will fragment at the end of the given adr
     base_ptr -= actualVirtualSizeDiffRoundedToMinAlloc;
 
+    // align
+    this->alignmentFragmentationSize = 0;
+    while ((uintptr_t)base_ptr % alignof(max_align_t) != 0) {
+        base_ptr--;
+        alignmentFragmentationSize++;
+    }
+    // TODO: if alignmentFragmentationSize has exceeded 0, we need to mark it as an unused block
+    if (alignmentFragmentationSize > 0) {
+        unusedBlocksCount++;
+    }
 
     free_list_count = max_memory_log - min_block_log + 1;
     free_list_level_limit = free_list_count - 1;
 
     // init free lists
-    uint8_t * init_ptr = static_cast<uint8_t *>(addr);
+    // TODO: must jump to next block
+    size_t offset = alignmentFragmentationSize == 0 ? 0 : (this->min_block_size - alignmentFragmentationSize);
+    uint8_t * init_ptr = static_cast<uint8_t *>(addr) + offset;
     freeLists = (Node**) init_ptr;
     for (int i = 0; i < free_list_count; ++i) {
         freeLists[i] = ((Node*) init_ptr) + i;
@@ -293,9 +305,9 @@ void Allocator::exposeFreeMemory(std::ostream &os) {
     // TODO: max_size --> to actual_size if any memory alloc is supported
     os << "Free memory size as of now: " << totalFreeMemory << "\n";
     os << "Total allocated memory size as of now: " << this->actual_size - totalFreeMemory << "\n";
-    os << "Fragmented memory size: " << this->actualVirtualSizeDiffRoundedToMinAlloc - this->actualVirtualSizeDiff << "\n";
+    os << "Fragmented memory size: " << (this->actualVirtualSizeDiffRoundedToMinAlloc - this->actualVirtualSizeDiff) + (this->alignmentFragmentationSize == 0 ? 0 : this->min_block_size) << "\n";
     os << "Allocated for inner structures: " << this->overhead_blocks_count * min_block_size << "\n";
-    os << "Allocated for users: " << (this->actual_size - totalFreeMemory) - (this->overhead_blocks_count * min_block_size) - (this->actualVirtualSizeDiffRoundedToMinAlloc - this->actualVirtualSizeDiff) << "\n\n";
+    os << "Allocated for users: " << this->max_memory_size - this->unusedBlocksCount * this->min_block_size - (this->overhead_blocks_count * min_block_size) - totalFreeMemory << "\n\n";
 }
 
 void Allocator::CheckForLeaks() {
