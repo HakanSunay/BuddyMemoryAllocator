@@ -8,7 +8,6 @@
 #include "Node.h"
 
 const char* BUDDY_INIT_EXCEPTION_MSG = "Allocator cannot be initialized with size less than twice of minimum block size";
-const char* BUDDY_INIT_MISALIGNED_MEMORY_EXCEPTION_MSG = "Misaligned memory";
 const char* BUDDY_INIT_WITH_NULLPTR_EXCEPTION_MSG = "Allocator cannot be initialized using nullptr as the memory block to be managed";
 const char* BUDDY_FREE_EXCEPTION_MSG = "Input address is not managed by the Allocator";
 
@@ -16,10 +15,6 @@ Allocator::Allocator(void *addr, size_t size) {
     if (addr == nullptr) {
         throw Exception(BUDDY_INIT_WITH_NULLPTR_EXCEPTION_MSG);
     }
-
-//    if ((uintptr_t) addr % alignof(Node*)) {
-//        throw Exception(BUDDY_INIT_MISALIGNED_MEMORY_EXCEPTION_MSG);
-//    }
 
     if (size < min_block_size * 2) {
         // Is throwing exception in constructor a good practice?
@@ -65,7 +60,6 @@ Allocator::Allocator(void *addr, size_t size) {
     free_list_level_limit = free_list_count - 1;
 
     // init free lists
-    // TODO: must jump to next block
     size_t offset = alignmentFragmentationSize == 0 ? 0 : (this->min_block_size - alignmentFragmentationSize);
     uint8_t * init_ptr = static_cast<uint8_t *>(addr) + offset;
     freeLists = (Node**) init_ptr;
@@ -181,8 +175,7 @@ void *Allocator::Allocate(size_t size) {
 void Allocator::Free(void *ptr) {
     // Very interesting read by Raymond Chen, which suggests that comparisons on pointers is not well defined:
     // https://devblogs.microsoft.com/oldnewthing/20170927-00/?p=97095
-    // TODO: Define custom exception class
-    if (((uintptr_t) ptr < (uintptr_t)base_ptr) || ((uintptr_t) ptr > (uintptr_t)base_ptr + max_memory_size)) {
+    if (((uintptr_t) ptr < (uintptr_t)actual_ptr) || ((uintptr_t) ptr > (uintptr_t)base_ptr + max_memory_size)) {
         throw Exception(BUDDY_FREE_EXCEPTION_MSG);
     }
     size_t allocationLevel = findLevelOfAllocatedBlock(ptr);
@@ -302,7 +295,6 @@ void Allocator::exposeFreeMemory(std::ostream &os) {
         totalFreeMemory += ((1 << (max_memory_log - i)) * freeBlockCountOnCurrentLevel);
     }
 
-    // TODO: max_size --> to actual_size if any memory alloc is supported
     os << "Free memory size as of now: " << totalFreeMemory << "\n";
     os << "Total allocated memory size as of now: " << this->actual_size - totalFreeMemory << "\n";
     os << "Fragmented memory size: " << (this->actualVirtualSizeDiffRoundedToMinAlloc - this->actualVirtualSizeDiff) + (this->alignmentFragmentationSize == 0 ? 0 : this->min_block_size) << "\n";
