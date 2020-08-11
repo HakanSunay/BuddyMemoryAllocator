@@ -506,3 +506,30 @@ void TestMisalignedMemoryWithPowerOfTwo() {
 
     a.Debug(std::cout);
 }
+
+void TestWithCharBufferWithNonPowTwoSize() {
+    char buffer[128];
+    Allocator a = Allocator(buffer+0, 128);
+    a.Debug(std::cout);
+
+    int* addrresses[3];
+    for (int i = 0; i < 3; ++i) {
+        addrresses[i] = static_cast<int *>(a.Allocate(sizeof(int)));
+        *addrresses[i] = i;
+    }
+
+    a.Debug(std::cout);
+
+    // Correctness check for buddy
+    for (int i = 0; i < 3; ++i) {
+        if (*addrresses[i] != i) {
+            std::cout << "Expected "<< i <<", but got " << *addrresses[i];
+        }
+    }
+
+    for (int i = 0; i < 3; ++i) {
+        a.Free(addrresses[i]);
+    }
+
+    a.Debug(std::cout);
+}

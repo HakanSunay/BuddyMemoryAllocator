@@ -35,5 +35,7 @@ void TestWithCharBufferAlignMissMoreThanOne();
 
 void TestMisalignedMemoryWithPowerOfTwo();
 
+void TestWithCharBufferWithNonPowTwoSize();
+
 
 #endif //BUDDY_ALLOCATOR_TESTS_H
