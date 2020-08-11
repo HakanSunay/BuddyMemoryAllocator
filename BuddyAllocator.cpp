@@ -437,6 +437,7 @@ bool Allocator::isNotAllocated(size_t index, size_t i, void *pVoid) {
 }
 
 // TODO: If you free the malloc address, the destructor will fail
+// TODO: Can save the totalFreeMemory in a variable and access it here
 Allocator::~Allocator() {
 //    size_t totalFreeMemory = getCurrentFreeMemory();
 //    size_t allocatedUserMemory = (this->actual_size - totalFreeMemory) - (this->overhead_blocks_count * min_block_size) - (this->actualVirtualSizeDiffRoundedToMinAlloc - this->actualVirtualSizeDiff);
